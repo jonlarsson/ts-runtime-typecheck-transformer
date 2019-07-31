@@ -18,13 +18,15 @@ function compiler (configFilePath: string) {
     options,
   });
 
+  const typeChecker = program.getTypeChecker()
+
   const emitResult = program.emit(
     undefined,
     undefined,
     undefined,
     undefined,
     {
-      before: [createVisitor()],
+      before: [createVisitor(typeChecker)],
       after: [],
       afterDeclarations: [],
     }

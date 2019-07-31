@@ -20,7 +20,7 @@ function isExpressionStatement (candidate: ts.ExpressionStatement | null): candi
   return !!candidate
 }
 
-export function createVisitor () {
+export function createVisitor (typeChecker: ts.TypeChecker) {
   function visitor (ctx: ts.TransformationContext, sf: ts.SourceFile) {
     const visitor: ts.Visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
       // here we can check each node and potentially return
@@ -30,14 +30,31 @@ export function createVisitor () {
         const assertCalls = node.parameters
           .map(parameter => {
             if (parameter.type && parameter.type.kind === ts.SyntaxKind.NumberKeyword) {
-              return createAssertNumCall(parameter.name.getText())
+              return [createAssertNumCall(parameter.name.getText())]
             }
             if (parameter.type && parameter.type.kind === ts.SyntaxKind.StringKeyword) {
-              return createAssertStringCall(parameter.name.getText())
+              return [createAssertStringCall(parameter.name.getText())]
             }
-            return null
+            if (parameter.type && parameter.type.kind === ts.SyntaxKind.TypeReference) {
+              const type = typeChecker.getTypeAtLocation(parameter)
+              const props = typeChecker.getPropertiesOfType(type)
+              return props.map(prop => {
+                const declaration = prop.declarations[0];
+                if (declaration && ts.isPropertySignature(declaration)) {
+                  if (declaration.type && declaration.type.kind === ts.SyntaxKind.NumberKeyword) {
+                    return createAssertNumCall(`${parameter.name.getText()}.${prop.getName()}`)
+                  }
+                  if (declaration.type && declaration.type.kind === ts.SyntaxKind.StringKeyword) {
+                    return createAssertStringCall(`${parameter.name.getText()}.${prop.getName()}`)
+                  }
+                }
+                return null
+              })
+                .filter(isExpressionStatement)
+            }
+            return []
           })
-          .filter(isExpressionStatement)
+          .flat()
         const newBody = ts.createBlock([
           ...assertCalls,
           ...node.body.statements

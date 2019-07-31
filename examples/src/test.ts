@@ -14,6 +14,6 @@ export interface NumStr {
   num: number;
   str: string;
 }
-export function a(num: NumStr): void {
+export function a(num: number, str: string, numstr: NumStr): void {
   console.log("a called", typeof num);
 }
