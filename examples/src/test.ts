@@ -10,10 +10,24 @@ function assertIsString(string: any): void {
   }
 }
 
+export interface Ab {
+  a: string;
+  b: number;
+}
+
 export interface NumStr {
   num: number;
   str: string;
+  ab: Ab;
+  both: string | number;
 }
-export function a(num: number, str: string, numstr: NumStr): void {
+
+// @validate
+// hgehe
+export function annotated(num: number, str: string, numstr: NumStr): void {
+  console.log("a called", typeof num);
+}
+
+export function noAnnotation(num: number, str: string, numstr: NumStr): void {
   console.log("a called", typeof num);
 }

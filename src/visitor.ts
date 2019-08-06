@@ -20,39 +20,55 @@ function isExpressionStatement (candidate: ts.ExpressionStatement | null): candi
   return !!candidate
 }
 
+function hasValidateComment (sf: ts.SourceFile, node: ts.Node): boolean {
+  const commentRanges = ts.getLeadingCommentRanges(sf.getText(), node.getFullStart())
+  return commentRanges !== undefined && commentRanges.some(commentRange => {
+    const commentText = sf.getText().substring(commentRange.pos, commentRange.end)
+    return /@validate/.test(commentText)
+  })
+}
+
+function createAssertCallsForType (typeChecker: ts.TypeChecker,
+                                   accessor: string,
+                                   node: ts.Node & {type?: ts.TypeNode}): ts.ExpressionStatement[] {
+
+  if (!node.type) {
+    return [];
+  }
+  if (node.type.kind === ts.SyntaxKind.NumberKeyword) {
+    return [createAssertNumCall(accessor)]
+  }
+  if (node.type.kind === ts.SyntaxKind.StringKeyword) {
+    return [createAssertStringCall(accessor)]
+  }
+  if (node.type.kind === ts.SyntaxKind.TypeReference) {
+    const type = typeChecker.getTypeAtLocation(node)
+    if (!type) {
+      return []
+    }
+    const props = typeChecker.getPropertiesOfType(type)
+    return props.map(prop => {
+      const declaration = prop.declarations[0]
+      if (declaration && ts.isPropertySignature(declaration)) {
+        return createAssertCallsForType(typeChecker, `${accessor}.${prop.getName()}`, declaration)
+      }
+      return []
+    })
+      .flat();
+  }
+  return []
+}
+
 export function createVisitor (typeChecker: ts.TypeChecker) {
   function visitor (ctx: ts.TransformationContext, sf: ts.SourceFile) {
     const visitor: ts.Visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
       // here we can check each node and potentially return
       // new nodes if we want to leave the node as is, and
       // continue searching through child nodes:
-      if (ts.isFunctionDeclaration(node) && node.body && !(node.name && node.name.text.startsWith('assert'))) {
+      if (ts.isFunctionDeclaration(node) && node.body && hasValidateComment(sf, node)) {
         const assertCalls = node.parameters
           .map(parameter => {
-            if (parameter.type && parameter.type.kind === ts.SyntaxKind.NumberKeyword) {
-              return [createAssertNumCall(parameter.name.getText())]
-            }
-            if (parameter.type && parameter.type.kind === ts.SyntaxKind.StringKeyword) {
-              return [createAssertStringCall(parameter.name.getText())]
-            }
-            if (parameter.type && parameter.type.kind === ts.SyntaxKind.TypeReference) {
-              const type = typeChecker.getTypeAtLocation(parameter)
-              const props = typeChecker.getPropertiesOfType(type)
-              return props.map(prop => {
-                const declaration = prop.declarations[0];
-                if (declaration && ts.isPropertySignature(declaration)) {
-                  if (declaration.type && declaration.type.kind === ts.SyntaxKind.NumberKeyword) {
-                    return createAssertNumCall(`${parameter.name.getText()}.${prop.getName()}`)
-                  }
-                  if (declaration.type && declaration.type.kind === ts.SyntaxKind.StringKeyword) {
-                    return createAssertStringCall(`${parameter.name.getText()}.${prop.getName()}`)
-                  }
-                }
-                return null
-              })
-                .filter(isExpressionStatement)
-            }
-            return []
+            return createAssertCallsForType(typeChecker, parameter.name.getText(), parameter)
           })
           .flat()
         const newBody = ts.createBlock([
