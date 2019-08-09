@@ -24,6 +24,16 @@ function createCheckUnionCall (checks: ts.ExpressionStatement[], identifier: str
   ))
 }
 
+function createCheckOptionalCall(checks: ts.ExpressionStatement[], identifier: string) {
+  const onDefinedLamda = ts.createArrowFunction([], [], [], undefined, undefined,
+    ts.createArrayLiteral(checks.map(check => check.expression), true));
+  return ts.createExpressionStatement(ts.createCall(
+    ts.createIdentifier('checkOptional'),
+    undefined,
+    [ts.createIdentifier(identifier), onDefinedLamda],
+  ))
+}
+
 function createAssertTypeCall(checks: ts.ExpressionStatement[]): ts.ExpressionStatement {
   return ts.createExpressionStatement(ts.createCall(
     ts.createIdentifier('assertType'),
@@ -57,9 +67,19 @@ function createAssertCallsForType (typeChecker: ts.TypeChecker,
     return [createCheckStringCall(accessor)]
   }
   if (type.isUnion()) {
+    const typesWithoutUndefined = type.types.filter(type => !(type.getFlags() & ts.TypeFlags.Undefined));
+    if (type.types.length > typesWithoutUndefined.length) {
+      if (typesWithoutUndefined.length === 1) {
+        return [createCheckOptionalCall(createAssertCallsForType(typeChecker, accessor, typesWithoutUndefined[0]), accessor)]
+      }
+      const checkUnionCalls = [createCheckUnionCall(typesWithoutUndefined
+        .map(type => createAssertCallsForType(typeChecker, accessor, type))
+        .flat(), accessor)]
+      return [createCheckOptionalCall(checkUnionCalls, accessor)];
+    }
     return [createCheckUnionCall(type.types
       .map(type => createAssertCallsForType(typeChecker, accessor, type))
-      .flat(), accessor)]
+      .flat(), accessor)];
   }
   if (type.isClassOrInterface()) {
     const props = typeChecker.getPropertiesOfType(type)

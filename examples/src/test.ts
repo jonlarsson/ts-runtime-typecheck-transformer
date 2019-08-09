@@ -49,6 +49,13 @@ function checkUnion(checkResults: CheckResult[], accessor: string): CheckResult 
   return OK;
 }
 
+function checkOptional(optional: any, onDefined: () => CheckResult[]): CheckResult[] {
+  if (optional !== undefined && optional !== null) {
+    return onDefined();
+  }
+  return [];
+}
+
 function assertType(checkResults: CheckResult[]) {
   const failedChecks: FailedCheckResult[] = checkResults.filter(isFailedCheckResult);
   if (failedChecks.length > 0) {
@@ -63,6 +70,9 @@ export interface Ab {
 }
 
 export interface NumStr {
+  optionalStr?: string;
+  optionalBoth?: string | number;
+  optionalAb?: Ab;
   num: number;
   str: string;
   ab: Ab;
