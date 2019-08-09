@@ -1,12 +1,59 @@
-function assertIsNumber(num: any): void {
-  if (typeof num !== "number") {
-    throw new Error("Not a number");
+interface CheckResult {
+  ok: boolean;
+}
+
+const OK: CheckResult = {
+  ok: true
+}
+
+interface FailedCheckResult extends CheckResult {
+  ok: false;
+  accessor: string;
+  error: string;
+}
+
+function failedCheck(accessor: string, error: string) {
+  return {
+    ok: false,
+    error,
+    accessor,
   }
 }
 
-function assertIsString(string: any): void {
-  if (typeof string !== "string") {
-    throw new Error("Not a string");
+function isFailedCheckResult(result: CheckResult): result is FailedCheckResult {
+  return !result.ok;
+}
+
+function checkNumber(num: any, accessor: string): CheckResult | FailedCheckResult {
+  if (typeof num !== "number") {
+    return failedCheck(accessor, "Not a number");
+  }
+  return OK;
+}
+
+function checkString(str: any, accessor: string): CheckResult | FailedCheckResult {
+  if (typeof str !== "string") {
+    return failedCheck(accessor, "Not a string");
+  }
+  return OK;
+}
+
+function checkUnion(checkResults: CheckResult[], accessor: string): CheckResult | FailedCheckResult {
+  const failedResults = checkResults
+    .filter(isFailedCheckResult)
+  if (failedResults.length === checkResults.length) {
+    return failedCheck(accessor, failedResults
+      .map(childResult => childResult.error)
+      .join(" AND "))
+  }
+  return OK;
+}
+
+function assertType(checkResults: CheckResult[]) {
+  const failedChecks: FailedCheckResult[] = checkResults.filter(isFailedCheckResult);
+  if (failedChecks.length > 0) {
+    // Todo more descriptive message
+    throw new Error("Some checks failed");
   }
 }
 

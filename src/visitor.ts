@@ -1,18 +1,34 @@
 import * as ts from 'typescript'
 
-function createAssertNumCall (identifier: string) {
+function createCheckNumCall (identifier: string) {
   return ts.createExpressionStatement(ts.createCall(
-    ts.createIdentifier('assertIsNumber'),
+    ts.createIdentifier('checkNumber'),
     undefined,
-    [ts.createIdentifier(identifier)],
+    [ts.createIdentifier(identifier), ts.createStringLiteral(identifier)],
   ))
 }
 
-function createAssertStringCall (identifier: string): ts.ExpressionStatement {
+function createCheckStringCall (identifier: string): ts.ExpressionStatement {
   return ts.createExpressionStatement(ts.createCall(
-    ts.createIdentifier('assertIsString'),
+    ts.createIdentifier('checkString'),
     undefined,
-    [ts.createIdentifier(identifier)],
+    [ts.createIdentifier(identifier), ts.createStringLiteral(identifier)],
+  ))
+}
+
+function createCheckUnionCall (checks: ts.ExpressionStatement[], identifier: string): ts.ExpressionStatement {
+  return ts.createExpressionStatement(ts.createCall(
+    ts.createIdentifier('checkUnion'),
+    undefined,
+    [ts.createArrayLiteral(checks.map(statement => statement.expression), true), ts.createStringLiteral(identifier)],
+  ))
+}
+
+function createAssertTypeCall(checks: ts.ExpressionStatement[]): ts.ExpressionStatement {
+  return ts.createExpressionStatement(ts.createCall(
+    ts.createIdentifier('assertType'),
+    undefined,
+    [ts.createArrayLiteral(checks.map(statement => statement.expression), true)],
   ))
 }
 
@@ -29,32 +45,34 @@ function hasValidateComment (sf: ts.SourceFile, node: ts.Node): boolean {
 }
 
 function createAssertCallsForType (typeChecker: ts.TypeChecker,
-                                   accessor: string,
-                                   node: ts.Node & {type?: ts.TypeNode}): ts.ExpressionStatement[] {
-
-  if (!node.type) {
-    return [];
+                                    accessor: string,
+                                    type?: ts.Type): ts.ExpressionStatement[] {
+  if (!type) {
+    return []
   }
-  if (node.type.kind === ts.SyntaxKind.NumberKeyword) {
-    return [createAssertNumCall(accessor)]
+  if (type.getFlags() & ts.TypeFlags.Number) {
+    return [createCheckNumCall(accessor)]
   }
-  if (node.type.kind === ts.SyntaxKind.StringKeyword) {
-    return [createAssertStringCall(accessor)]
+  if (type.getFlags() & ts.TypeFlags.String) {
+    return [createCheckStringCall(accessor)]
   }
-  if (node.type.kind === ts.SyntaxKind.TypeReference) {
-    const type = typeChecker.getTypeAtLocation(node)
-    if (!type) {
-      return []
-    }
+  if (type.isUnion()) {
+    return [createCheckUnionCall(type.types
+      .map(type => createAssertCallsForType(typeChecker, accessor, type))
+      .flat(), accessor)]
+  }
+  if (type.isClassOrInterface()) {
     const props = typeChecker.getPropertiesOfType(type)
     return props.map(prop => {
       const declaration = prop.declarations[0]
       if (declaration && ts.isPropertySignature(declaration)) {
-        return createAssertCallsForType(typeChecker, `${accessor}.${prop.getName()}`, declaration)
+        return createAssertCallsForType(typeChecker,
+          `${accessor}.${prop.getName()}`,
+          typeChecker.getTypeAtLocation(declaration))
       }
       return []
     })
-      .flat();
+      .flat()
   }
   return []
 }
@@ -68,11 +86,11 @@ export function createVisitor (typeChecker: ts.TypeChecker) {
       if (ts.isFunctionDeclaration(node) && node.body && hasValidateComment(sf, node)) {
         const assertCalls = node.parameters
           .map(parameter => {
-            return createAssertCallsForType(typeChecker, parameter.name.getText(), parameter)
+            return createAssertCallsForType(typeChecker, parameter.name.getText(), typeChecker.getTypeAtLocation(parameter))
           })
           .flat()
         const newBody = ts.createBlock([
-          ...assertCalls,
+          createAssertTypeCall(assertCalls),
           ...node.body.statements
         ], true)
         return ts.updateFunctionDeclaration(
