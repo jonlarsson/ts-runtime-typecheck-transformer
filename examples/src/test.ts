@@ -73,6 +73,7 @@ export interface NumStr {
   optionalStr?: string;
   optionalBoth?: string | number;
   optionalAb?: Ab;
+  nullableNum: number | null;
   num: number;
   str: string;
   ab: Ab;

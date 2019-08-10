@@ -54,6 +54,10 @@ function hasValidateComment (sf: ts.SourceFile, node: ts.Node): boolean {
   })
 }
 
+function isOptional(type: ts.Type) {
+  return (type.getFlags() & ts.TypeFlags.Undefined) || (type.getFlags() & ts.TypeFlags.Null);
+}
+
 function createAssertCallsForType (typeChecker: ts.TypeChecker,
                                     accessor: string,
                                     type?: ts.Type): ts.ExpressionStatement[] {
@@ -67,12 +71,12 @@ function createAssertCallsForType (typeChecker: ts.TypeChecker,
     return [createCheckStringCall(accessor)]
   }
   if (type.isUnion()) {
-    const typesWithoutUndefined = type.types.filter(type => !(type.getFlags() & ts.TypeFlags.Undefined));
-    if (type.types.length > typesWithoutUndefined.length) {
-      if (typesWithoutUndefined.length === 1) {
-        return [createCheckOptionalCall(createAssertCallsForType(typeChecker, accessor, typesWithoutUndefined[0]), accessor)]
+    const typesExceptOptional = type.types.filter(type => !isOptional(type));
+    if (type.types.length > typesExceptOptional.length) {
+      if (typesExceptOptional.length === 1) {
+        return [createCheckOptionalCall(createAssertCallsForType(typeChecker, accessor, typesExceptOptional[0]), accessor)]
       }
-      const checkUnionCalls = [createCheckUnionCall(typesWithoutUndefined
+      const checkUnionCalls = [createCheckUnionCall(typesExceptOptional
         .map(type => createAssertCallsForType(typeChecker, accessor, type))
         .flat(), accessor)]
       return [createCheckOptionalCall(checkUnionCalls, accessor)];
