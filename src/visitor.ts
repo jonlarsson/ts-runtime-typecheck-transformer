@@ -2,7 +2,7 @@ import * as ts from 'typescript'
 
 function createCheckNumCall (identifier: string) {
   return ts.createExpressionStatement(ts.createCall(
-    ts.createIdentifier('checkNumber'),
+    ts.createIdentifier('rvlib.checkNumber'),
     undefined,
     [ts.createIdentifier(identifier), ts.createStringLiteral(identifier)],
   ))
@@ -10,15 +10,15 @@ function createCheckNumCall (identifier: string) {
 
 function createCheckStringCall (identifier: string): ts.ExpressionStatement {
   return ts.createExpressionStatement(ts.createCall(
-    ts.createIdentifier('checkString'),
+    ts.createIdentifier('rvlib.checkString'),
     undefined,
     [ts.createIdentifier(identifier), ts.createStringLiteral(identifier)],
   ))
 }
 
-function createCheckInterfaceCall(checks: ts.ExpressionStatement[], identifier: string): ts.ExpressionStatement {
+function createCheckInterfaceCall (checks: ts.ExpressionStatement[], identifier: string): ts.ExpressionStatement {
   return ts.createExpressionStatement(ts.createCall(
-    ts.createIdentifier('checkInterface'),
+    ts.createIdentifier('rvlib.checkInterface'),
     undefined,
     [ts.createArrayLiteral(checks.map(statement => statement.expression), true), ts.createStringLiteral(identifier)],
   ))
@@ -26,25 +26,25 @@ function createCheckInterfaceCall(checks: ts.ExpressionStatement[], identifier: 
 
 function createCheckUnionCall (checks: ts.ExpressionStatement[], identifier: string): ts.ExpressionStatement {
   return ts.createExpressionStatement(ts.createCall(
-    ts.createIdentifier('checkUnion'),
+    ts.createIdentifier('rvlib.checkUnion'),
     undefined,
     [ts.createArrayLiteral(checks.map(statement => statement.expression), true), ts.createStringLiteral(identifier)],
   ))
 }
 
-function createCheckOptionalCall(checks: ts.ExpressionStatement[], identifier: string) {
+function createCheckOptionalCall (checks: ts.ExpressionStatement[], identifier: string) {
   const onDefinedLamda = ts.createArrowFunction([], [], [], undefined, undefined,
-    ts.createArrayLiteral(checks.map(check => check.expression), true));
+    ts.createArrayLiteral(checks.map(check => check.expression), true))
   return ts.createExpressionStatement(ts.createCall(
-    ts.createIdentifier('checkOptional'),
+    ts.createIdentifier('rvlib.checkOptional'),
     undefined,
     [ts.createIdentifier(identifier), onDefinedLamda],
   ))
 }
 
-function createAssertTypeCall(checks: ts.ExpressionStatement[]): ts.ExpressionStatement {
+function createAssertTypeCall (checks: ts.ExpressionStatement[]): ts.ExpressionStatement {
   return ts.createExpressionStatement(ts.createCall(
-    ts.createIdentifier('assertType'),
+    ts.createIdentifier('rvlib.assertType'),
     undefined,
     [ts.createArrayLiteral(checks.map(statement => statement.expression), true)],
   ))
@@ -62,13 +62,13 @@ function hasValidateComment (sf: ts.SourceFile, node: ts.Node): boolean {
   })
 }
 
-function isOptional(type: ts.Type) {
-  return (type.getFlags() & ts.TypeFlags.Undefined) || (type.getFlags() & ts.TypeFlags.Null);
+function isOptional (type: ts.Type) {
+  return (type.getFlags() & ts.TypeFlags.Undefined) || (type.getFlags() & ts.TypeFlags.Null)
 }
 
 function createCheckCallsForType (typeChecker: ts.TypeChecker,
-                                    accessor: string,
-                                    type?: ts.Type): ts.ExpressionStatement | null {
+                                  accessor: string,
+                                  type?: ts.Type): ts.ExpressionStatement | null {
   if (!type) {
     return null
   }
@@ -79,20 +79,20 @@ function createCheckCallsForType (typeChecker: ts.TypeChecker,
     return createCheckStringCall(accessor)
   }
   if (type.isUnion()) {
-    const typesExceptOptional = type.types.filter(type => !isOptional(type));
+    const typesExceptOptional = type.types.filter(type => !isOptional(type))
     if (type.types.length > typesExceptOptional.length) {
       if (typesExceptOptional.length === 1) {
         const checkCall = createCheckCallsForType(typeChecker, accessor, typesExceptOptional[0])
-        return isExpressionStatement(checkCall) ? createCheckOptionalCall([checkCall], accessor) : null;
+        return isExpressionStatement(checkCall) ? createCheckOptionalCall([checkCall], accessor) : null
       }
       const checkUnionCalls = createCheckUnionCall(typesExceptOptional
         .map(type => createCheckCallsForType(typeChecker, accessor, type))
         .filter(isExpressionStatement), accessor)
-      return createCheckOptionalCall([checkUnionCalls], accessor);
+      return createCheckOptionalCall([checkUnionCalls], accessor)
     }
     return createCheckUnionCall(type.types
       .map(type => createCheckCallsForType(typeChecker, accessor, type))
-      .filter(isExpressionStatement), accessor);
+      .filter(isExpressionStatement), accessor)
   }
   if (type.isClassOrInterface()) {
     const props = typeChecker.getPropertiesOfType(type)
@@ -107,13 +107,14 @@ function createCheckCallsForType (typeChecker: ts.TypeChecker,
     })
       .flat()
 
-    return createCheckInterfaceCall(interfaceChecks, accessor);
+    return createCheckInterfaceCall(interfaceChecks, accessor)
   }
-  return null;
+  return null
 }
 
 export function createVisitor (typeChecker: ts.TypeChecker) {
   function visitor (ctx: ts.TransformationContext, sf: ts.SourceFile) {
+    let libNeeded = false
     const visitor: ts.Visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
       // here we can check each node and potentially return
       // new nodes if we want to leave the node as is, and
@@ -121,6 +122,7 @@ export function createVisitor (typeChecker: ts.TypeChecker) {
       if (ts.isFunctionDeclaration(node) && node.body && hasValidateComment(sf, node)) {
         const assertCalls = node.parameters
           .map(parameter => {
+            libNeeded = true
             return createCheckCallsForType(typeChecker, parameter.name.getText(), typeChecker.getTypeAtLocation(parameter))
           })
           .flat()
@@ -139,6 +141,17 @@ export function createVisitor (typeChecker: ts.TypeChecker) {
           node.type,
           newBody,
         )
+      } else if (ts.isSourceFile(node)) {
+        const transformedTs = ts.visitEachChild(node, visitor, ctx)
+        if (libNeeded) {
+          const importClause = ts.createImportClause(undefined, ts.createNamespaceImport(ts.createIdentifier("rvlib")));
+          const importDeclaration = ts.createImportDeclaration([], [], importClause,
+            ts.createStringLiteral("./validations"));
+          return ts.updateSourceFileNode(transformedTs, [importDeclaration, ...transformedTs.statements], transformedTs.isDeclarationFile,
+            transformedTs.referencedFiles,
+            transformedTs.typeReferenceDirectives, transformedTs.hasNoDefaultLib, transformedTs.libReferenceDirectives)
+        }
+        return transformedTs
       } else {
         return ts.visitEachChild(node, visitor, ctx)
       }
