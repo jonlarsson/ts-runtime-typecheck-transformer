@@ -16,6 +16,14 @@ function createCheckStringCall (identifier: string): ts.ExpressionStatement {
   ))
 }
 
+function createCheckInterfaceCall(checks: ts.ExpressionStatement[], identifier: string): ts.ExpressionStatement {
+  return ts.createExpressionStatement(ts.createCall(
+    ts.createIdentifier('checkInterface'),
+    undefined,
+    [ts.createArrayLiteral(checks.map(statement => statement.expression), true), ts.createStringLiteral(identifier)],
+  ))
+}
+
 function createCheckUnionCall (checks: ts.ExpressionStatement[], identifier: string): ts.ExpressionStatement {
   return ts.createExpressionStatement(ts.createCall(
     ts.createIdentifier('checkUnion'),
@@ -58,47 +66,50 @@ function isOptional(type: ts.Type) {
   return (type.getFlags() & ts.TypeFlags.Undefined) || (type.getFlags() & ts.TypeFlags.Null);
 }
 
-function createAssertCallsForType (typeChecker: ts.TypeChecker,
+function createCheckCallsForType (typeChecker: ts.TypeChecker,
                                     accessor: string,
-                                    type?: ts.Type): ts.ExpressionStatement[] {
+                                    type?: ts.Type): ts.ExpressionStatement | null {
   if (!type) {
-    return []
+    return null
   }
   if (type.getFlags() & ts.TypeFlags.Number) {
-    return [createCheckNumCall(accessor)]
+    return createCheckNumCall(accessor)
   }
   if (type.getFlags() & ts.TypeFlags.String) {
-    return [createCheckStringCall(accessor)]
+    return createCheckStringCall(accessor)
   }
   if (type.isUnion()) {
     const typesExceptOptional = type.types.filter(type => !isOptional(type));
     if (type.types.length > typesExceptOptional.length) {
       if (typesExceptOptional.length === 1) {
-        return [createCheckOptionalCall(createAssertCallsForType(typeChecker, accessor, typesExceptOptional[0]), accessor)]
+        const checkCall = createCheckCallsForType(typeChecker, accessor, typesExceptOptional[0])
+        return isExpressionStatement(checkCall) ? createCheckOptionalCall([checkCall], accessor) : null;
       }
-      const checkUnionCalls = [createCheckUnionCall(typesExceptOptional
-        .map(type => createAssertCallsForType(typeChecker, accessor, type))
-        .flat(), accessor)]
-      return [createCheckOptionalCall(checkUnionCalls, accessor)];
+      const checkUnionCalls = createCheckUnionCall(typesExceptOptional
+        .map(type => createCheckCallsForType(typeChecker, accessor, type))
+        .filter(isExpressionStatement), accessor)
+      return createCheckOptionalCall([checkUnionCalls], accessor);
     }
-    return [createCheckUnionCall(type.types
-      .map(type => createAssertCallsForType(typeChecker, accessor, type))
-      .flat(), accessor)];
+    return createCheckUnionCall(type.types
+      .map(type => createCheckCallsForType(typeChecker, accessor, type))
+      .filter(isExpressionStatement), accessor);
   }
   if (type.isClassOrInterface()) {
     const props = typeChecker.getPropertiesOfType(type)
-    return props.map(prop => {
+    const interfaceChecks = props.map(prop => {
       const declaration = prop.declarations[0]
       if (declaration && ts.isPropertySignature(declaration)) {
-        return createAssertCallsForType(typeChecker,
+        return createCheckCallsForType(typeChecker,
           `${accessor}.${prop.getName()}`,
           typeChecker.getTypeAtLocation(declaration))
       }
       return []
     })
       .flat()
+
+    return createCheckInterfaceCall(interfaceChecks, accessor);
   }
-  return []
+  return null;
 }
 
 export function createVisitor (typeChecker: ts.TypeChecker) {
@@ -110,7 +121,7 @@ export function createVisitor (typeChecker: ts.TypeChecker) {
       if (ts.isFunctionDeclaration(node) && node.body && hasValidateComment(sf, node)) {
         const assertCalls = node.parameters
           .map(parameter => {
-            return createAssertCallsForType(typeChecker, parameter.name.getText(), typeChecker.getTypeAtLocation(parameter))
+            return createCheckCallsForType(typeChecker, parameter.name.getText(), typeChecker.getTypeAtLocation(parameter))
           })
           .flat()
         const newBody = ts.createBlock([

@@ -38,6 +38,17 @@ function checkString(str: any, accessor: string): CheckResult | FailedCheckResul
   return OK;
 }
 
+function checkInterface(checkResults: CheckResult[], accessor: string): CheckResult | FailedCheckResult {
+  const failedResults = checkResults
+    .filter(isFailedCheckResult)
+  if (failedResults.length > 0) {
+    return failedCheck(accessor, failedResults
+      .map(childResult => childResult.error)
+      .join(" AND "))
+  }
+  return OK;
+}
+
 function checkUnion(checkResults: CheckResult[], accessor: string): CheckResult | FailedCheckResult {
   const failedResults = checkResults
     .filter(isFailedCheckResult)
@@ -77,6 +88,7 @@ export interface NumStr {
   num: number;
   str: string;
   ab: Ab;
+  abOrString: string | Ab;
   both: string | number;
 }
 
