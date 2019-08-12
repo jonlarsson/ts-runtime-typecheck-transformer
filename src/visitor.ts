@@ -1,50 +1,58 @@
 import * as ts from 'typescript'
 
-function createCheckNumCall (identifier: string) {
+function createCheckNumCall (identifier: string, rvLib: ts.Identifier) {
   return ts.createExpressionStatement(ts.createCall(
-    ts.createIdentifier('rvlib.checkNumber'),
+    ts.createPropertyAccess(rvLib, 'checkNumber'),
     undefined,
     [ts.createIdentifier(identifier), ts.createStringLiteral(identifier)],
   ))
 }
 
-function createCheckStringCall (identifier: string): ts.ExpressionStatement {
+function createCheckStringCall (identifier: string, rvLib: ts.Identifier): ts.ExpressionStatement {
   return ts.createExpressionStatement(ts.createCall(
-    ts.createIdentifier('rvlib.checkString'),
+    ts.createPropertyAccess(rvLib, 'checkString'),
     undefined,
     [ts.createIdentifier(identifier), ts.createStringLiteral(identifier)],
   ))
 }
 
-function createCheckInterfaceCall (checks: ts.ExpressionStatement[], identifier: string): ts.ExpressionStatement {
+function createCheckBooleanCall (identifier: string, rvLib: ts.Identifier): ts.ExpressionStatement {
   return ts.createExpressionStatement(ts.createCall(
-    ts.createIdentifier('rvlib.checkInterface'),
+    ts.createPropertyAccess(rvLib, 'checkBoolean'),
+    undefined,
+    [ts.createIdentifier(identifier), ts.createStringLiteral(identifier)],
+  ))
+}
+
+function createCheckInterfaceCall (checks: ts.ExpressionStatement[], identifier: string, rvLib: ts.Identifier): ts.ExpressionStatement {
+  return ts.createExpressionStatement(ts.createCall(
+    ts.createPropertyAccess(rvLib, 'checkInterface'),
     undefined,
     [ts.createArrayLiteral(checks.map(statement => statement.expression), true), ts.createStringLiteral(identifier)],
   ))
 }
 
-function createCheckUnionCall (checks: ts.ExpressionStatement[], identifier: string): ts.ExpressionStatement {
+function createCheckUnionCall (checks: ts.ExpressionStatement[], identifier: string, rvLib: ts.Identifier): ts.ExpressionStatement {
   return ts.createExpressionStatement(ts.createCall(
-    ts.createIdentifier('rvlib.checkUnion'),
+    ts.createPropertyAccess(rvLib, 'checkUnion'),
     undefined,
     [ts.createArrayLiteral(checks.map(statement => statement.expression), true), ts.createStringLiteral(identifier)],
   ))
 }
 
-function createCheckOptionalCall (checks: ts.ExpressionStatement[], identifier: string) {
+function createCheckOptionalCall (checks: ts.ExpressionStatement[], identifier: string, rvLib: ts.Identifier) {
   const onDefinedLamda = ts.createArrowFunction([], [], [], undefined, undefined,
     ts.createArrayLiteral(checks.map(check => check.expression), true))
   return ts.createExpressionStatement(ts.createCall(
-    ts.createIdentifier('rvlib.checkOptional'),
+    ts.createPropertyAccess(rvLib, 'checkOptional'),
     undefined,
     [ts.createIdentifier(identifier), onDefinedLamda],
   ))
 }
 
-function createAssertTypeCall (checks: ts.ExpressionStatement[]): ts.ExpressionStatement {
+function createAssertTypeCall (checks: ts.ExpressionStatement[], rvLib: ts.Identifier): ts.ExpressionStatement {
   return ts.createExpressionStatement(ts.createCall(
-    ts.createIdentifier('rvlib.assertType'),
+    ts.createPropertyAccess(rvLib, 'assertType'),
     undefined,
     [ts.createArrayLiteral(checks.map(statement => statement.expression), true)],
   ))
@@ -67,32 +75,36 @@ function isOptional (type: ts.Type) {
 }
 
 function createCheckCallsForType (typeChecker: ts.TypeChecker,
+                                  rvLib: ts.Identifier,
                                   accessor: string,
                                   type?: ts.Type): ts.ExpressionStatement | null {
   if (!type) {
     return null
   }
   if (type.getFlags() & ts.TypeFlags.Number) {
-    return createCheckNumCall(accessor)
+    return createCheckNumCall(accessor, rvLib)
   }
   if (type.getFlags() & ts.TypeFlags.String) {
-    return createCheckStringCall(accessor)
+    return createCheckStringCall(accessor, rvLib)
+  }
+  if (type.getFlags() & ts.TypeFlags.Boolean) {
+    return createCheckBooleanCall(accessor, rvLib)
   }
   if (type.isUnion()) {
     const typesExceptOptional = type.types.filter(type => !isOptional(type))
     if (type.types.length > typesExceptOptional.length) {
       if (typesExceptOptional.length === 1) {
-        const checkCall = createCheckCallsForType(typeChecker, accessor, typesExceptOptional[0])
-        return isExpressionStatement(checkCall) ? createCheckOptionalCall([checkCall], accessor) : null
+        const checkCall = createCheckCallsForType(typeChecker, rvLib, accessor, typesExceptOptional[0])
+        return isExpressionStatement(checkCall) ? createCheckOptionalCall([checkCall], accessor, rvLib) : null
       }
       const checkUnionCalls = createCheckUnionCall(typesExceptOptional
-        .map(type => createCheckCallsForType(typeChecker, accessor, type))
-        .filter(isExpressionStatement), accessor)
-      return createCheckOptionalCall([checkUnionCalls], accessor)
+        .map(type => createCheckCallsForType(typeChecker, rvLib, accessor, type))
+        .filter(isExpressionStatement), accessor, rvLib)
+      return createCheckOptionalCall([checkUnionCalls], accessor, rvLib)
     }
     return createCheckUnionCall(type.types
-      .map(type => createCheckCallsForType(typeChecker, accessor, type))
-      .filter(isExpressionStatement), accessor)
+      .map(type => createCheckCallsForType(typeChecker, rvLib, accessor, type))
+      .filter(isExpressionStatement), accessor, rvLib)
   }
   if (type.isClassOrInterface()) {
     const props = typeChecker.getPropertiesOfType(type)
@@ -100,6 +112,7 @@ function createCheckCallsForType (typeChecker: ts.TypeChecker,
       const declaration = prop.declarations[0]
       if (declaration && ts.isPropertySignature(declaration)) {
         return createCheckCallsForType(typeChecker,
+          rvLib,
           `${accessor}.${prop.getName()}`,
           typeChecker.getTypeAtLocation(declaration))
       }
@@ -107,7 +120,7 @@ function createCheckCallsForType (typeChecker: ts.TypeChecker,
     })
       .flat()
 
-    return createCheckInterfaceCall(interfaceChecks, accessor)
+    return createCheckInterfaceCall(interfaceChecks, accessor, rvLib)
   }
   return null
 }
@@ -115,6 +128,7 @@ function createCheckCallsForType (typeChecker: ts.TypeChecker,
 export function createVisitor (typeChecker: ts.TypeChecker) {
   function visitor (ctx: ts.TransformationContext, sf: ts.SourceFile) {
     let libNeeded = false
+    const rvlib = ts.createFileLevelUniqueName("rvlib");
     const visitor: ts.Visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
       // here we can check each node and potentially return
       // new nodes if we want to leave the node as is, and
@@ -123,11 +137,11 @@ export function createVisitor (typeChecker: ts.TypeChecker) {
         const assertCalls = node.parameters
           .map(parameter => {
             libNeeded = true
-            return createCheckCallsForType(typeChecker, parameter.name.getText(), typeChecker.getTypeAtLocation(parameter))
+            return createCheckCallsForType(typeChecker, rvlib, parameter.name.getText(), typeChecker.getTypeAtLocation(parameter))
           })
           .flat()
         const newBody = ts.createBlock([
-          createAssertTypeCall(assertCalls),
+          createAssertTypeCall(assertCalls, rvlib),
           ...node.body.statements
         ], true)
         return ts.updateFunctionDeclaration(
@@ -144,7 +158,7 @@ export function createVisitor (typeChecker: ts.TypeChecker) {
       } else if (ts.isSourceFile(node)) {
         const transformedTs = ts.visitEachChild(node, visitor, ctx)
         if (libNeeded) {
-          const importClause = ts.createImportClause(undefined, ts.createNamespaceImport(ts.createIdentifier("rvlib")));
+          const importClause = ts.createImportClause(undefined, ts.createNamespaceImport(rvlib));
           const importDeclaration = ts.createImportDeclaration([], [], importClause,
             ts.createStringLiteral("./validations"));
           return ts.updateSourceFileNode(transformedTs, [importDeclaration, ...transformedTs.statements], transformedTs.isDeclarationFile,

@@ -1,6 +1,7 @@
 export interface Ab {
   a: string;
   b: number;
+  c: boolean;
 }
 
 export interface NumStr {
@@ -14,6 +15,8 @@ export interface NumStr {
   abOrString: string | Ab;
   both: string | number;
 }
+
+const rvlib = "test";
 
 // @validate
 // hgehe

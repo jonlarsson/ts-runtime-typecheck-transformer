@@ -42,6 +42,13 @@ export function checkString(str: any, accessor: string): CheckResult {
   return OK;
 }
 
+export function checkBoolean(bool: any, accessor: string): CheckResult {
+  if (typeof bool !== "boolean") {
+    return failedCheck(accessor, "Not a boolean");
+  }
+  return OK;
+}
+
 export function checkInterface(checkResults: CheckResult[], accessor: string): CheckResult {
   const failedResults = checkResults
     .filter(isFailedCheckResult)
