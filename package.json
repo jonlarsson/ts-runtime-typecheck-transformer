@@ -1,5 +1,5 @@
 {
-  "name": "tscompile",
+  "name": "ts-runtime-typecheck-transformer",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
