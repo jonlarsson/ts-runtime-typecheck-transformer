@@ -2,3 +2,5 @@ node_modules
 /dest
 /examples/dest
 yarn-error.log
+.idea
+*.iml
