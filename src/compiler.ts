@@ -56,4 +56,4 @@ function compiler(configFilePath: string) {
   }
 }
 
-compiler("/Users/jonlarsson/dev/tscompile/examples/tsconfig.json");
+compiler(process.argv[2]);
