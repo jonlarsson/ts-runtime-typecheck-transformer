@@ -251,7 +251,7 @@ export function createVisitor(typeChecker: ts.TypeChecker) {
             [],
             [],
             importClause,
-            ts.createStringLiteral("./validations")
+            ts.createStringLiteral("ts-runtime-typecheck-validations")
           );
           return ts.updateSourceFileNode(
             transformedTs,

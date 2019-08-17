@@ -1,6 +1,7 @@
 node_modules
-/dest
-/examples/dest
+/transformer/dest
+/validations/dest
+/transformer/examples/dest
 yarn-error.log
 .idea
 *.iml
