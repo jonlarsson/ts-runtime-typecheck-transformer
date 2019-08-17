@@ -1,12 +1,10 @@
-
-
 export interface PassedCheckResult {
   ok: true;
 }
 
 const OK: PassedCheckResult = {
   ok: true
-}
+};
 
 export interface FailedCheckResult {
   ok: false;
@@ -20,8 +18,8 @@ export function failedCheck(accessor: string, error: string) {
   return {
     ok: false,
     error,
-    accessor,
-  }
+    accessor
+  };
 }
 
 function isFailedCheckResult(result: CheckResult): result is FailedCheckResult {
@@ -49,29 +47,38 @@ export function checkBoolean(bool: any, accessor: string): CheckResult {
   return OK;
 }
 
-export function checkInterface(checkResults: CheckResult[], accessor: string): CheckResult {
-  const failedResults = checkResults
-    .filter(isFailedCheckResult)
+export function checkInterface(
+  checkResults: CheckResult[],
+  accessor: string
+): CheckResult {
+  const failedResults = checkResults.filter(isFailedCheckResult);
   if (failedResults.length > 0) {
-    return failedCheck(accessor, failedResults
-      .map(childResult => childResult.error)
-      .join(" AND "))
+    return failedCheck(
+      accessor,
+      failedResults.map(childResult => childResult.error).join(" AND ")
+    );
   }
   return OK;
 }
 
-export function checkUnion(checkResults: CheckResult[], accessor: string): CheckResult {
-  const failedResults = checkResults
-    .filter(isFailedCheckResult)
+export function checkUnion(
+  checkResults: CheckResult[],
+  accessor: string
+): CheckResult {
+  const failedResults = checkResults.filter(isFailedCheckResult);
   if (failedResults.length === checkResults.length) {
-    return failedCheck(accessor, failedResults
-      .map(childResult => childResult.error)
-      .join(" AND "))
+    return failedCheck(
+      accessor,
+      failedResults.map(childResult => childResult.error).join(" AND ")
+    );
   }
   return OK;
 }
 
-export function checkOptional(optional: any, onDefined: () => CheckResult[]): CheckResult[] {
+export function checkOptional(
+  optional: any,
+  onDefined: () => CheckResult[]
+): CheckResult[] {
   if (optional !== undefined && optional !== null) {
     return onDefined();
   }
@@ -79,7 +86,9 @@ export function checkOptional(optional: any, onDefined: () => CheckResult[]): Ch
 }
 
 export function assertType(checkResults: CheckResult[]) {
-  const failedChecks: FailedCheckResult[] = checkResults.filter(isFailedCheckResult);
+  const failedChecks: FailedCheckResult[] = checkResults.filter(
+    isFailedCheckResult
+  );
   if (failedChecks.length > 0) {
     // Todo more descriptive message
     throw new Error("Some checks failed");

@@ -13,6 +13,7 @@
   },
   "scripts": {
     "compile": "ts-node src/compiler.ts",
-    "watch": "tsc --watch"
+    "watch": "tsc --watch",
+    "format": "prettier --write src/**/* examples/src/**/* *.json"
   }
 }
