@@ -4,5 +4,14 @@
   "main": "dest/index.js",
   "license": "MIT",
   "private": true,
-  "workspaces": ["transformer", "validations"]
+  "workspaces": [
+    "transformer",
+    "validations"
+  ],
+  "scripts": {
+    "format": "prettier --write */**/*.{json,js,ts} *.json"
+  },
+  "devDependencies": {
+    "prettier": "^1.18.2"
+  }
 }
