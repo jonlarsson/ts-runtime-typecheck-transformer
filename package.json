@@ -6,7 +6,8 @@
   "private": true,
   "workspaces": [
     "transformer",
-    "validations"
+    "validations",
+    "tests"
   ],
   "scripts": {
     "format": "prettier --write */**/*.{json,js,ts} *.json"

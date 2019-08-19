@@ -1,7 +1,9 @@
 node_modules
 /transformer/dest
-/validations/dest
 /transformer/examples/dest
+/validations/dest
+/tests/dest
 yarn-error.log
 .idea
 *.iml
+tsconfig.tsbuildinfo
