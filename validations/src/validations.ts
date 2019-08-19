@@ -85,7 +85,7 @@ export function checkOptional(
   return [];
 }
 
-export function assertType(checkResults: CheckResult[]) {
+export function assertType<T>(value: T, checkResults: CheckResult[]): T {
   const failedChecks: FailedCheckResult[] = checkResults.filter(
     isFailedCheckResult
   );
@@ -93,4 +93,5 @@ export function assertType(checkResults: CheckResult[]) {
     // Todo more descriptive message
     throw new Error("Some checks failed");
   }
+  return value;
 }

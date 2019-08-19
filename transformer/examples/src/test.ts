@@ -18,6 +18,10 @@ export interface NumStr {
 
 const rvlib = "test";
 
+function unsafeCall(): any {
+  return {};
+}
+
 // @validate
 // hgehe
 export function annotated(num: number, str: string, numstr: NumStr): void {
@@ -27,3 +31,6 @@ export function annotated(num: number, str: string, numstr: NumStr): void {
 export function noAnnotation(num: number, str: string, numstr: NumStr): void {
   console.log("a called", typeof num);
 }
+
+// @validate
+const ape: NumStr = unsafeCall();

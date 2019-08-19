@@ -87,11 +87,13 @@ function createCheckOptionalCall(
 }
 
 function createAssertTypeCall(
+  expression: ts.Expression,
   checks: ts.ExpressionStatement[],
   rvLib: ts.Identifier
 ): ts.ExpressionStatement {
   return ts.createExpressionStatement(
     ts.createCall(ts.createPropertyAccess(rvLib, "assertType"), undefined, [
+      expression,
       ts.createArrayLiteral(checks.map(statement => statement.expression), true)
     ])
   );
@@ -192,9 +194,9 @@ function createCheckCallsForType(
             typeChecker.getTypeAtLocation(declaration)
           );
         }
-        return [];
+        return null;
       })
-      .flat();
+      .filter(isExpressionStatement);
 
     return createCheckInterfaceCall(interfaceChecks, accessor, rvLib);
   }
@@ -224,9 +226,12 @@ export function createVisitor(typeChecker: ts.TypeChecker) {
               typeChecker.getTypeAtLocation(parameter)
             );
           })
-          .flat();
+          .filter(isExpressionStatement);
         const newBody = ts.createBlock(
-          [createAssertTypeCall(assertCalls, rvlib), ...node.body.statements],
+          [
+            createAssertTypeCall(ts.createNull(), assertCalls, rvlib),
+            ...node.body.statements
+          ],
           true
         );
         return ts.updateFunctionDeclaration(
@@ -239,6 +244,34 @@ export function createVisitor(typeChecker: ts.TypeChecker) {
           node.parameters,
           node.type,
           newBody
+        );
+      } else if (ts.isVariableStatement(node) && hasValidateComment(sf, node)) {
+        return ts.createVariableStatement(
+          node.modifiers,
+          ts.createVariableDeclarationList(
+            node.declarationList.declarations.map(declaration => {
+              const checks = createCheckCallsForType(
+                typeChecker,
+                rvlib,
+                declaration.name.getText(),
+                typeChecker.getTypeAtLocation(declaration)
+              );
+              if (declaration.initializer && checks) {
+                const assertCall = createAssertTypeCall(
+                  declaration.initializer,
+                  [checks],
+                  rvlib
+                );
+                return ts.createVariableDeclaration(
+                  declaration.name,
+                  declaration.type,
+                  assertCall.expression
+                );
+              }
+              return declaration;
+            }),
+            node.declarationList.flags
+          )
         );
       } else if (ts.isSourceFile(node)) {
         const transformedTs = ts.visitEachChild(node, visitor, ctx);
