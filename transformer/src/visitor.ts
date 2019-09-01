@@ -1,4 +1,4 @@
-import * as ts from "typescript";
+import * as ts from 'typescript'
 
 function createCheckNumCall(identifier: string, rvLib: ts.Identifier) {
   return ts.createExpressionStatement(
@@ -207,96 +207,59 @@ export function createVisitor(typeChecker: ts.TypeChecker) {
   function visitor(ctx: ts.TransformationContext, sf: ts.SourceFile) {
     let libNeeded = false;
     const rvlib = ts.createFileLevelUniqueName("rvlib");
+    let placeholderFunctionName: string | null = null;
     const visitor: ts.Visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
       // here we can check each node and potentially return
       // new nodes if we want to leave the node as is, and
       // continue searching through child nodes:
       if (
-        ts.isFunctionDeclaration(node) &&
-        node.body &&
-        hasValidateComment(sf, node)
+        ts.isCallExpression(node) &&
+        placeholderFunctionName &&
+        node.expression.getText() === placeholderFunctionName
       ) {
-        const assertCalls = node.parameters
-          .map(parameter => {
+        const assertCalls = node.arguments
+          .map(argument => {
             libNeeded = true;
             return createCheckCallsForType(
               typeChecker,
               rvlib,
-              parameter.name.getText(),
-              typeChecker.getTypeAtLocation(parameter)
+              argument.getText(),
+              typeChecker.getTypeAtLocation(argument)
             );
           })
           .filter(isExpressionStatement);
-        const newBody = ts.createBlock(
-          [
-            createAssertTypeCall(ts.createNull(), assertCalls, rvlib),
-            ...node.body.statements
-          ],
-          true
-        );
-        return ts.updateFunctionDeclaration(
-          node,
-          node.decorators,
-          node.modifiers,
-          node.asteriskToken,
-          node.name,
-          node.typeParameters,
-          node.parameters,
-          node.type,
-          newBody
-        );
-      } else if (ts.isVariableStatement(node) && hasValidateComment(sf, node)) {
-        return ts.createVariableStatement(
-          node.modifiers,
-          ts.createVariableDeclarationList(
-            node.declarationList.declarations.map(declaration => {
-              const checks = createCheckCallsForType(
-                typeChecker,
-                rvlib,
-                declaration.name.getText(),
-                typeChecker.getTypeAtLocation(declaration)
-              );
-              if (declaration.initializer && checks) {
-                const assertCall = createAssertTypeCall(
-                  declaration.initializer,
-                  [checks],
-                  rvlib
-                );
-                return ts.createVariableDeclaration(
-                  declaration.name,
-                  declaration.type,
-                  assertCall.expression
-                );
-              }
-              return declaration;
-            }),
-            node.declarationList.flags
-          )
-        );
-      } else if (ts.isSourceFile(node)) {
-        const transformedTs = ts.visitEachChild(node, visitor, ctx);
-        if (libNeeded) {
-          const importClause = ts.createImportClause(
-            undefined,
-            ts.createNamespaceImport(rvlib)
+        return createAssertTypeCall(ts.createNull(), assertCalls, rvlib)
+          .expression;
+      } else if (
+        ts.isImportDeclaration(node) &&
+        ts.isStringLiteral(node.moduleSpecifier) &&
+        /["'`]ts-runtime-typecheck-validations["'`]/.test(node.moduleSpecifier.getText())
+      ) {
+        if (
+          node.importClause &&
+          node.importClause.namedBindings &&
+          ts.isNamedImports(node.importClause.namedBindings)
+        ) {
+          const runtimeTypecheckBinding = node.importClause.namedBindings.elements.find(
+            binding =>
+              binding.propertyName
+                ? binding.propertyName.getText() === "runtimeTypecheck"
+                : binding.name.getText() === "runtimeTypecheck"
           );
-          const importDeclaration = ts.createImportDeclaration(
-            [],
-            [],
-            importClause,
-            ts.createStringLiteral("ts-runtime-typecheck-validations")
-          );
-          return ts.updateSourceFileNode(
-            transformedTs,
-            [importDeclaration, ...transformedTs.statements],
-            transformedTs.isDeclarationFile,
-            transformedTs.referencedFiles,
-            transformedTs.typeReferenceDirectives,
-            transformedTs.hasNoDefaultLib,
-            transformedTs.libReferenceDirectives
-          );
+          if (runtimeTypecheckBinding) {
+            placeholderFunctionName = runtimeTypecheckBinding.name.getText();
+          }
         }
-        return transformedTs;
+        const importClause = ts.createImportClause(
+          undefined,
+          ts.createNamespaceImport(rvlib)
+        );
+        return ts.createImportDeclaration(
+          [],
+          [],
+          importClause,
+          ts.createStringLiteral("ts-runtime-typecheck-validations")
+        );
       } else {
         return ts.visitEachChild(node, visitor, ctx);
       }

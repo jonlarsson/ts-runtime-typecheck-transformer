@@ -1,3 +1,5 @@
+import { runtimeTypecheck } from 'ts-runtime-typecheck-validations'
+
 export interface Ab {
   a: string;
   b: number;
@@ -16,15 +18,15 @@ export interface NumStr {
   both: string | number;
 }
 
-const rvlib = "test";
-
 function unsafeCall(): any {
   return {};
 }
+const ape: NumStr = unsafeCall();
 
-// @validate
-// hgehe
+runtimeTypecheck(ape)
+
 export function annotated(num: number, str: string, numstr: NumStr): void {
+  runtimeTypecheck(num, str, numstr);
   console.log("a called", typeof num);
 }
 
@@ -32,5 +34,7 @@ export function noAnnotation(num: number, str: string, numstr: NumStr): void {
   console.log("a called", typeof num);
 }
 
-// @validate
-const ape: NumStr = unsafeCall();
+
+
+const a: {cow: NumStr} = unsafeCall();
+runtimeTypecheck(a);

@@ -10,3 +10,5 @@ export {
   checkString,
   checkUnion
 } from "./validations";
+
+export function runtimeTypecheck(...variable: any): void {}
