@@ -181,7 +181,7 @@ function createCheckCallsForType(
       rvLib
     );
   }
-  if (type.isClassOrInterface()) {
+  if (type.isClassOrInterface() || (type.getFlags() & ts.TypeFlags.Object)) {
     const props = typeChecker.getPropertiesOfType(type);
     const interfaceChecks = props
       .map(prop => {

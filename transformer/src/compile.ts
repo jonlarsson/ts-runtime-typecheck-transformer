@@ -1,6 +1,6 @@
 import * as ts from "typescript";
 import { createVisitor } from "./visitor";
-function compiler(configFilePath: string) {
+export function compile(configFilePath: string = "./tsconfig.json") {
   // tslint:disable-next-line no-any
   const host: ts.ParseConfigFileHost = ts.sys as any;
   // Fix after https://github.com/Microsoft/TypeScript/issues/18217
@@ -55,5 +55,3 @@ function compiler(configFilePath: string) {
     process.exit(exitCode);
   }
 }
-
-compiler(process.argv[2]);

@@ -21,18 +21,18 @@ export interface NumStr {
 function unsafeCall(): any {
   return {};
 }
-const ape: NumStr = unsafeCall();
-
-runtimeTypecheck(ape)
-
-export function annotated(num: number, str: string, numstr: NumStr): void {
-  runtimeTypecheck(num, str, numstr);
-  console.log("a called", typeof num);
-}
-
-export function noAnnotation(num: number, str: string, numstr: NumStr): void {
-  console.log("a called", typeof num);
-}
+// const ape: NumStr = unsafeCall();
+//
+// runtimeTypecheck(ape)
+//
+// export function annotated(num: number, str: string, numstr: NumStr): void {
+//   runtimeTypecheck(num, str, numstr);
+//   console.log("a called", typeof num);
+// }
+//
+// export function noAnnotation(num: number, str: string, numstr: NumStr): void {
+//   console.log("a called", typeof num);
+// }
 
 
 

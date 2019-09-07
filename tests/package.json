@@ -6,14 +6,17 @@
   "license": "MIT",
   "dependencies": {
     "ts-node": "^8.3.0",
-    "typescript": "^3.5.2",
-    "ts-runtime-typecheck-transformer": "^1.0.0"
+    "ts-runtime-typecheck-transformer": "^1.0.0",
+    "ts-runtime-typecheck-validations": "^1.0.0",
+    "typescript": "^3.5.2"
   },
   "devDependencies": {
-    "@types/node": "^12.0.8"
+    "@types/jest": "^24.0.18",
+    "@types/node": "^12.0.8",
+    "jest": "^24.9.0"
   },
   "scripts": {
-    "build": "tsc --build",
-    "watch": "tsc --watch"
+    "build": "ts-runtime-typecheck-compile",
+    "test": "ts-runtime-typecheck-compile && jest"
   }
 }
