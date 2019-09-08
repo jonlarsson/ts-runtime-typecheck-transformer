@@ -81,12 +81,12 @@ export function checkUnion(
 
 export function checkOptional(
   optional: any,
-  onDefined: () => CheckResult[]
-): CheckResult[] {
+  onDefined: () => CheckResult
+): CheckResult {
   if (optional !== undefined && optional !== null) {
     return onDefined();
   }
-  return [];
+  return OK;
 }
 
 function createErrorMessageFromFailedChecks(failedChecks: FailedCheckResult[]) {

@@ -66,7 +66,7 @@ function createCheckUnionCall(
 }
 
 function createCheckOptionalCall(
-  checks: ts.ExpressionStatement[],
+  check: ts.ExpressionStatement,
   identifier: string,
   rvLib: ts.Identifier
 ) {
@@ -76,7 +76,7 @@ function createCheckOptionalCall(
     [],
     undefined,
     undefined,
-    ts.createArrayLiteral(checks.map(check => check.expression), true)
+    check.expression
   );
   return ts.createExpressionStatement(
     ts.createCall(ts.createPropertyAccess(rvLib, "checkOptional"), undefined, [
@@ -157,10 +157,10 @@ function createCheckCallsForType(
           typesExceptOptional[0]
         );
         return isExpressionStatement(checkCall)
-          ? createCheckOptionalCall([checkCall], accessor, rvLib)
+          ? createCheckOptionalCall(checkCall, accessor, rvLib)
           : null;
       }
-      const checkUnionCalls = createCheckUnionCall(
+      const checkUnionCall = createCheckUnionCall(
         typesExceptOptional
           .map(type =>
             createCheckCallsForType(typeChecker, rvLib, accessor, type)
@@ -169,7 +169,7 @@ function createCheckCallsForType(
         accessor,
         rvLib
       );
-      return createCheckOptionalCall([checkUnionCalls], accessor, rvLib);
+      return createCheckOptionalCall(checkUnionCall, accessor, rvLib);
     }
     return createCheckUnionCall(
       type.types
