@@ -32,21 +32,21 @@ function isFailedCheckResult(result: CheckResult): result is FailedCheckResult {
 
 export function checkNumber(num: any, accessor: string): CheckResult {
   if (typeof num !== "number") {
-    return failedCheck(accessor, "Not a number");
+    return failedCheck(accessor, `Not a number, got '${typeof num}'`);
   }
   return OK;
 }
 
 export function checkString(str: any, accessor: string): CheckResult {
   if (typeof str !== "string") {
-    return failedCheck(accessor, "Not a string");
+    return failedCheck(accessor, `Not a string, got '${typeof str}'`);
   }
   return OK;
 }
 
 export function checkBoolean(bool: any, accessor: string): CheckResult {
   if (typeof bool !== "boolean") {
-    return failedCheck(accessor, "Not a boolean");
+    return failedCheck(accessor, `Not a boolean, got '${typeof bool}'`);
   }
   return OK;
 }

@@ -105,22 +105,6 @@ function isExpressionStatement(
   return !!candidate;
 }
 
-function hasValidateComment(sf: ts.SourceFile, node: ts.Node): boolean {
-  const commentRanges = ts.getLeadingCommentRanges(
-    sf.getText(),
-    node.getFullStart()
-  );
-  return (
-    commentRanges !== undefined &&
-    commentRanges.some(commentRange => {
-      const commentText = sf
-        .getText()
-        .substring(commentRange.pos, commentRange.end);
-      return /@validate/.test(commentText);
-    })
-  );
-}
-
 function isOptional(type: ts.Type) {
   return (
     type.getFlags() & ts.TypeFlags.Undefined ||

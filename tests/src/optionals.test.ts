@@ -32,7 +32,7 @@ describe("optionals", () => {
 
     const actual = () => runtimeTypecheck(nonOptional);
 
-    expect(actual).toThrowError("nonOptional: Not a boolean")
+    expect(actual).toThrowError("nonOptional: Not a bolean")
   });
 
   it("should not allow a non optional primitive to be undefined", () => {
