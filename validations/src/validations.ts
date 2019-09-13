@@ -2,7 +2,7 @@ export interface PassedCheckResult {
   ok: true;
 }
 
-const OK: PassedCheckResult = {
+export const OK: PassedCheckResult = {
   ok: true
 };
 
@@ -10,7 +10,8 @@ export interface FailedCheckResult {
   ok: false;
   accessor: string;
   error: string;
-}``
+}
+``;
 
 export type CheckResult = PassedCheckResult | FailedCheckResult;
 
@@ -26,7 +27,9 @@ export function failedCheck(accessor: string, error: string) {
   };
 }
 
-function isFailedCheckResult(result: CheckResult): result is FailedCheckResult {
+export function isFailedCheckResult(
+  result: CheckResult
+): result is FailedCheckResult {
   return !result.ok;
 }
 
@@ -49,6 +52,38 @@ export function checkBoolean(bool: any, accessor: string): CheckResult {
     return failedCheck(accessor, `Not a boolean, got '${typeof bool}'`);
   }
   return OK;
+}
+
+export function checkArray(
+  array: any,
+  accessor: string,
+  checkItem: (item: any, index: number) => CheckResult
+): CheckResult {
+  if (Array.isArray(array)) {
+    const itemResults = array.map(checkItem);
+    const failedResults: FailedCheckResult[] = itemResults
+      .map((itemResult, index) => {
+        if (isFailedCheckResult(itemResult)) {
+          return {
+            ...itemResult,
+            accessor: `${itemResult.accessor.replace(
+              /^[^.]*/,
+              accessor
+            )}[${index}]`
+          };
+        }
+        return itemResult;
+      })
+      .filter(isFailedCheckResult);
+    if (failedResults.length > 0) {
+      return failedCheck(
+        accessor,
+        failedResults.map(failedCheckToString).join(" AND ")
+      );
+    }
+    return OK;
+  }
+  return failedCheck(accessor, `Not an array, got '${typeof array}'`);
 }
 
 export function checkInterface(
@@ -90,9 +125,8 @@ export function checkOptional(
 }
 
 function createErrorMessageFromFailedChecks(failedChecks: FailedCheckResult[]) {
-  const failedChecksString = failedChecks.map(failedCheckToString)
-    .join(", ")
-  return `Runtime types does not match expected types: ${failedChecksString}`
+  const failedChecksString = failedChecks.map(failedCheckToString).join(", ");
+  return `Runtime types does not match expected types: ${failedChecksString}`;
 }
 
 export class TypeCheckFailedError extends Error {}
@@ -102,7 +136,9 @@ export function assertType<T>(value: T, checkResults: CheckResult[]): T {
     isFailedCheckResult
   );
   if (failedChecks.length > 0) {
-    throw new TypeCheckFailedError(createErrorMessageFromFailedChecks(failedChecks));
+    throw new TypeCheckFailedError(
+      createErrorMessageFromFailedChecks(failedChecks)
+    );
   }
   return value;
 }

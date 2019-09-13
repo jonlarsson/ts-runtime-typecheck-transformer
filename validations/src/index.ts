@@ -8,7 +8,8 @@ export {
   checkNumber,
   checkOptional,
   checkString,
-  checkUnion
+  checkUnion,
+  checkArray
 } from "./validations";
 
 export function runtimeTypecheck(...variable: any): void {}

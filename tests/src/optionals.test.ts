@@ -1,4 +1,4 @@
-import { runtimeTypecheck } from 'ts-runtime-typecheck-validations'
+import { runtimeTypecheck } from "ts-runtime-typecheck-validations";
 
 describe("optionals", () => {
   it("should allow an optional primitive to be null", () => {
@@ -32,7 +32,7 @@ describe("optionals", () => {
 
     const actual = () => runtimeTypecheck(nonOptional);
 
-    expect(actual).toThrowError("nonOptional: Not a bolean")
+    expect(actual).toThrowError("nonOptional: Not a boolean");
   });
 
   it("should not allow a non optional primitive to be undefined", () => {
@@ -41,7 +41,7 @@ describe("optionals", () => {
 
     const actual = () => runtimeTypecheck(nonOptional);
 
-    expect(actual).toThrowError("nonOptional: Not a boolean")
+    expect(actual).toThrowError("nonOptional: Not a boolean");
   });
 
   it("should allow an optional property to be undefined", () => {
@@ -54,7 +54,7 @@ describe("optionals", () => {
 
   it("should not allow an optional property to have the wrong type", () => {
     //@ts-ignore
-    const obj: { a?: number } = {a: true};
+    const obj: { a?: number } = { a: true };
 
     const actual = () => runtimeTypecheck(obj);
 
@@ -68,5 +68,5 @@ describe("optionals", () => {
     const actual = () => runtimeTypecheck(obj);
 
     expect(actual).toThrowError("obj.a: Not a number");
-  })
-})
+  });
+});

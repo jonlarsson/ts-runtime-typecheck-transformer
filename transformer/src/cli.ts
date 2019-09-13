@@ -1,4 +1,4 @@
 #!/usr/bin/env node
-import { compile } from './compile'
+import { compile } from "./compile";
 
 compile(process.argv[2]);

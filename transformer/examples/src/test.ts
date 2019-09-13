@@ -1,4 +1,4 @@
-import { runtimeTypecheck } from 'ts-runtime-typecheck-validations'
+import { runtimeTypecheck } from "ts-runtime-typecheck-validations";
 
 export interface Ab {
   a: string;
@@ -34,7 +34,15 @@ function unsafeCall(): any {
 //   console.log("a called", typeof num);
 // }
 
+// const a: {cow: NumStr} = unsafeCall();
+// runtimeTypecheck(a);
 
+type Array<T> = {
+  ape: T;
+};
 
-const a: {cow: NumStr} = unsafeCall();
-runtimeTypecheck(a);
+const nonArray: Array<number> = unsafeCall();
+runtimeTypecheck(nonArray);
+
+const array: number[] = unsafeCall();
+runtimeTypecheck(array);

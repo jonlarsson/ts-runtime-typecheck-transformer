@@ -1,4 +1,4 @@
-import * as ts from 'typescript'
+import * as ts from "typescript";
 
 function createCheckNumCall(identifier: string, rvLib: ts.Identifier) {
   return ts.createExpressionStatement(
@@ -46,6 +46,34 @@ function createCheckInterfaceCall(
       ),
       ts.createStringLiteral(identifier)
     ])
+  );
+}
+
+function createCheckArrayCall(
+  itemCheck: ts.ArrowFunction,
+  identifier: string,
+  rvLib: ts.Identifier
+): ts.ExpressionStatement {
+  return ts.createExpressionStatement(
+    ts.createCall(ts.createPropertyAccess(rvLib, "checkArray"), undefined, [
+      ts.createIdentifier(identifier),
+      ts.createStringLiteral(identifier),
+      itemCheck
+    ])
+  );
+}
+
+function createItemCheckArrowFunction(expression: ts.ExpressionStatement) {
+  return ts.createArrowFunction(
+    undefined,
+    undefined,
+    [
+      ts.createParameter(undefined, undefined, undefined, "item"),
+      ts.createParameter(undefined, undefined, undefined, "index")
+    ],
+    undefined,
+    undefined,
+    expression.expression
   );
 }
 
@@ -112,6 +140,10 @@ function isOptional(type: ts.Type) {
   );
 }
 
+function isTypeReference(type: ts.Type): type is ts.TypeReference {
+  return Array.isArray((type as ts.TypeReference).typeArguments);
+}
+
 function createCheckCallsForType(
   typeChecker: ts.TypeChecker,
   rvLib: ts.Identifier,
@@ -121,6 +153,7 @@ function createCheckCallsForType(
   if (!type) {
     return null;
   }
+  const symbol = type.getSymbol();
   if (type.getFlags() & ts.TypeFlags.Number) {
     return createCheckNumCall(accessor, rvLib);
   }
@@ -129,6 +162,27 @@ function createCheckCallsForType(
   }
   if (type.getFlags() & ts.TypeFlags.Boolean) {
     return createCheckBooleanCall(accessor, rvLib);
+  }
+  if (
+    type.getFlags() & ts.TypeFlags.Object &&
+    symbol &&
+    symbol.getName() === "Array" &&
+    isTypeReference(type) &&
+    type.typeArguments &&
+    type.typeArguments.length === 1
+  ) {
+    const itemCheck = createCheckCallsForType(
+      typeChecker,
+      rvLib,
+      "item",
+      type.typeArguments[0]
+    );
+    if (itemCheck) {
+      const checkArrowFunction = createItemCheckArrowFunction(itemCheck);
+      return createCheckArrayCall(checkArrowFunction, accessor, rvLib);
+    } else {
+      return null;
+    }
   }
   if (type.isUnion()) {
     const typesExceptOptional = type.types.filter(type => !isOptional(type));
@@ -165,7 +219,7 @@ function createCheckCallsForType(
       rvLib
     );
   }
-  if (type.isClassOrInterface() || (type.getFlags() & ts.TypeFlags.Object)) {
+  if (type.isClassOrInterface() || type.getFlags() & ts.TypeFlags.Object) {
     const props = typeChecker.getPropertiesOfType(type);
     const interfaceChecks = props
       .map(prop => {
@@ -217,7 +271,9 @@ export function createVisitor(typeChecker: ts.TypeChecker) {
       } else if (
         ts.isImportDeclaration(node) &&
         ts.isStringLiteral(node.moduleSpecifier) &&
-        /["'`]ts-runtime-typecheck-validations["'`]/.test(node.moduleSpecifier.getText())
+        /["'`]ts-runtime-typecheck-validations["'`]/.test(
+          node.moduleSpecifier.getText()
+        )
       ) {
         if (
           node.importClause &&
