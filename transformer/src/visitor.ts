@@ -50,16 +50,17 @@ function createCheckInterfaceCall(
 }
 
 function createCheckArrayCall(
-  itemCheck: ts.ArrowFunction,
   identifier: string,
-  rvLib: ts.Identifier
+  rvLib: ts.Identifier,
+  itemCheck?: ts.ArrowFunction
 ): ts.ExpressionStatement {
+  const requiredArgs = [
+    ts.createIdentifier(identifier),
+    ts.createStringLiteral(identifier)
+  ];
+  const args = itemCheck ? [...requiredArgs, itemCheck] : requiredArgs;
   return ts.createExpressionStatement(
-    ts.createCall(ts.createPropertyAccess(rvLib, "checkArray"), undefined, [
-      ts.createIdentifier(identifier),
-      ts.createStringLiteral(identifier),
-      itemCheck
-    ])
+    ts.createCall(ts.createPropertyAccess(rvLib, "checkArray"), undefined, args)
   );
 }
 
@@ -144,6 +145,22 @@ function isTypeReference(type: ts.Type): type is ts.TypeReference {
   return Array.isArray((type as ts.TypeReference).typeArguments);
 }
 
+function isObjectType(type: ts.Type): type is ts.ObjectType {
+  return Boolean(type.getFlags() && ts.TypeFlags.Object);
+}
+
+function isTupleType(type: ts.ObjectType): type is ts.TupleType {
+  return Boolean(type.objectFlags & ts.ObjectFlags.Tuple);
+}
+
+function isArrayType(type: ts.Type): type is ts.ObjectType {
+  const symbol = type.getSymbol();
+  return (
+    isObjectType(type) &&
+    (isTupleType(type) || Boolean(symbol && symbol.getName() === "Array"))
+  );
+}
+
 function createCheckCallsForType(
   typeChecker: ts.TypeChecker,
   rvLib: ts.Identifier,
@@ -163,25 +180,22 @@ function createCheckCallsForType(
   if (type.getFlags() & ts.TypeFlags.Boolean) {
     return createCheckBooleanCall(accessor, rvLib);
   }
-  if (
-    type.getFlags() & ts.TypeFlags.Object &&
-    symbol &&
-    symbol.getName() === "Array" &&
-    isTypeReference(type) &&
-    type.typeArguments &&
-    type.typeArguments.length === 1
-  ) {
-    const itemCheck = createCheckCallsForType(
-      typeChecker,
-      rvLib,
-      "item",
-      type.typeArguments[0]
-    );
+  if (isArrayType(type)) {
+    const itemCheck =
+      isTypeReference(type) &&
+      type.typeArguments &&
+      type.typeArguments.length === 1 &&
+      createCheckCallsForType(
+        typeChecker,
+        rvLib,
+        "item",
+        type.typeArguments[0]
+      );
     if (itemCheck) {
       const checkArrowFunction = createItemCheckArrowFunction(itemCheck);
-      return createCheckArrayCall(checkArrowFunction, accessor, rvLib);
+      return createCheckArrayCall(accessor, rvLib, checkArrowFunction);
     } else {
-      return null;
+      return createCheckArrayCall(accessor, rvLib);
     }
   }
   if (type.isUnion()) {

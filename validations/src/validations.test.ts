@@ -19,8 +19,14 @@ describe("validations", () => {
 
     it("should pass check for an empty array", () => {
       const actual = checkArray([], "emtpyArray", () =>
-        failedCheck("emptyArray[]", "Failed item")
+        failedCheck("emptyArray", "Failed item")
       );
+
+      expect(isFailedCheckResult(actual)).toBe(false);
+    });
+
+    it("should pass any values when item check is not supplied", () => {
+      const actual = checkArray([false, null, undefined], "emtpyArray");
 
       expect(isFailedCheckResult(actual)).toBe(false);
     });

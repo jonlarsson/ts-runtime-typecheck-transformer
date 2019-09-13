@@ -57,10 +57,10 @@ export function checkBoolean(bool: any, accessor: string): CheckResult {
 export function checkArray(
   array: any,
   accessor: string,
-  checkItem: (item: any, index: number) => CheckResult
+  checkItem?: (item: any, index: number) => CheckResult
 ): CheckResult {
   if (Array.isArray(array)) {
-    const itemResults = array.map(checkItem);
+    const itemResults = checkItem ? array.map(checkItem) : [];
     const failedResults: FailedCheckResult[] = itemResults
       .map((itemResult, index) => {
         if (isFailedCheckResult(itemResult)) {

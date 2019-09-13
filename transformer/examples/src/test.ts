@@ -37,12 +37,11 @@ function unsafeCall(): any {
 // const a: {cow: NumStr} = unsafeCall();
 // runtimeTypecheck(a);
 
-type Array<T> = {
-  ape: T;
-};
-
-const nonArray: Array<number> = unsafeCall();
-runtimeTypecheck(nonArray);
-
-const array: number[] = unsafeCall();
+const array: [] = unsafeCall();
 runtimeTypecheck(array);
+
+const array2: number[] = unsafeCall();
+runtimeTypecheck(array2);
+
+const array3: NumStr[] = unsafeCall();
+runtimeTypecheck(array3);

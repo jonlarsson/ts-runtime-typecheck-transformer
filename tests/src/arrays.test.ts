@@ -26,4 +26,21 @@ describe("optionals", () => {
 
     expect(actual).toThrowError("array[0]: Not a number");
   });
+
+  it("should allow arrays with any items", () => {
+    const array: [] = [];
+
+    const actual = () => runtimeTypecheck(array);
+
+    expect(actual).not.toThrow();
+  });
+
+  it("should not allow an object array item with wrong member", () => {
+    //@ts-ignore
+    const array: { num: number }[] = [{ num: 1 }, { num: false }];
+
+    const actual = () => runtimeTypecheck(array);
+
+    expect(actual).toThrowError("item.num: Not a number");
+  });
 });
