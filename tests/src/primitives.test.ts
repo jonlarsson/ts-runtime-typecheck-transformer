@@ -1,4 +1,5 @@
 import { runtimeTypecheck } from "ts-runtime-typecheck-validations";
+import { expectToThrowRuntimeTypecheckError } from "./expectToThrowRuntimeTypecheckError";
 
 describe("primitives", () => {
   describe("number", () => {
@@ -7,7 +8,7 @@ describe("primitives", () => {
       const a: number = "1";
       const actual = () => runtimeTypecheck(a);
 
-      expect(actual).toThrowError("a: Not a number");
+      expectToThrowRuntimeTypecheckError(actual, "a", "number", "string");
     });
 
     it("should not fail if the parameter is a number", () => {
@@ -24,7 +25,7 @@ describe("primitives", () => {
       const a: boolean = "true";
       const actual = () => runtimeTypecheck(a);
 
-      expect(actual).toThrowError("a: Not a boolean");
+      expectToThrowRuntimeTypecheckError(actual, "a", "boolean", "string");
     });
 
     it("should not fail if the parameter is a boolean", () => {
@@ -41,7 +42,7 @@ describe("primitives", () => {
       const a: string = 1;
       const actual = () => runtimeTypecheck(a);
 
-      expect(actual).toThrowError("a: Not a string");
+      expectToThrowRuntimeTypecheckError(actual, "a", "string", "number");
     });
 
     it("should not fail if the parameter is a string", () => {

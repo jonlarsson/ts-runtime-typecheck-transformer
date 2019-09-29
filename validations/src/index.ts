@@ -1,7 +1,4 @@
 export {
-  CheckResult,
-  FailedCheckResult,
-  PassedCheckResult,
   assertType,
   checkBoolean,
   checkInterface,

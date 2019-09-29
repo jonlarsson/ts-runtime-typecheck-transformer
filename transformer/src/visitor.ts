@@ -1,41 +1,49 @@
 import * as ts from "typescript";
 
-function createCheckNumCall(identifier: string, rvLib: ts.Identifier) {
+function accessorFromPath(path: string[]) {
+  return ts.createIdentifier(path.join("."));
+}
+
+function identifierFromPath(path: string[]) {
+  return ts.createStringLiteral(path[path.length - 1]);
+}
+
+function createCheckNumCall(path: string[], rvLib: ts.Identifier) {
   return ts.createExpressionStatement(
     ts.createCall(ts.createPropertyAccess(rvLib, "checkNumber"), undefined, [
-      ts.createIdentifier(identifier),
-      ts.createStringLiteral(identifier)
+      accessorFromPath(path),
+      identifierFromPath(path)
     ])
   );
 }
 
 function createCheckStringCall(
-  identifier: string,
+  path: string[],
   rvLib: ts.Identifier
 ): ts.ExpressionStatement {
   return ts.createExpressionStatement(
     ts.createCall(ts.createPropertyAccess(rvLib, "checkString"), undefined, [
-      ts.createIdentifier(identifier),
-      ts.createStringLiteral(identifier)
+      accessorFromPath(path),
+      identifierFromPath(path)
     ])
   );
 }
 
 function createCheckBooleanCall(
-  identifier: string,
+  path: string[],
   rvLib: ts.Identifier
 ): ts.ExpressionStatement {
   return ts.createExpressionStatement(
     ts.createCall(ts.createPropertyAccess(rvLib, "checkBoolean"), undefined, [
-      ts.createIdentifier(identifier),
-      ts.createStringLiteral(identifier)
+      accessorFromPath(path),
+      identifierFromPath(path)
     ])
   );
 }
 
 function createCheckInterfaceCall(
   checks: ts.ExpressionStatement[],
-  identifier: string,
+  path: string[],
   rvLib: ts.Identifier
 ): ts.ExpressionStatement {
   return ts.createExpressionStatement(
@@ -44,20 +52,17 @@ function createCheckInterfaceCall(
         checks.map(statement => statement.expression),
         true
       ),
-      ts.createStringLiteral(identifier)
+      identifierFromPath(path)
     ])
   );
 }
 
 function createCheckArrayCall(
-  identifier: string,
+  path: string[],
   rvLib: ts.Identifier,
   itemCheck?: ts.ArrowFunction
 ): ts.ExpressionStatement {
-  const requiredArgs = [
-    ts.createIdentifier(identifier),
-    ts.createStringLiteral(identifier)
-  ];
+  const requiredArgs = [accessorFromPath(path), identifierFromPath(path)];
   const args = itemCheck ? [...requiredArgs, itemCheck] : requiredArgs;
   return ts.createExpressionStatement(
     ts.createCall(ts.createPropertyAccess(rvLib, "checkArray"), undefined, args)
@@ -80,7 +85,7 @@ function createItemCheckArrowFunction(expression: ts.ExpressionStatement) {
 
 function createCheckUnionCall(
   checks: ts.ExpressionStatement[],
-  identifier: string,
+  path: string[],
   rvLib: ts.Identifier
 ): ts.ExpressionStatement {
   return ts.createExpressionStatement(
@@ -89,14 +94,14 @@ function createCheckUnionCall(
         checks.map(statement => statement.expression),
         true
       ),
-      ts.createStringLiteral(identifier)
+      accessorFromPath(path)
     ])
   );
 }
 
 function createCheckOptionalCall(
   check: ts.ExpressionStatement,
-  identifier: string,
+  path: string[],
   rvLib: ts.Identifier
 ) {
   const onDefinedLamda = ts.createArrowFunction(
@@ -109,7 +114,7 @@ function createCheckOptionalCall(
   );
   return ts.createExpressionStatement(
     ts.createCall(ts.createPropertyAccess(rvLib, "checkOptional"), undefined, [
-      ts.createIdentifier(identifier),
+      accessorFromPath(path),
       onDefinedLamda
     ])
   );
@@ -164,13 +169,12 @@ function isArrayType(type: ts.Type): type is ts.ObjectType {
 function createCheckCallsForType(
   typeChecker: ts.TypeChecker,
   rvLib: ts.Identifier,
-  accessor: string,
+  accessor: string[],
   type?: ts.Type
 ): ts.ExpressionStatement | null {
   if (!type) {
     return null;
   }
-  const symbol = type.getSymbol();
   if (type.getFlags() & ts.TypeFlags.Number) {
     return createCheckNumCall(accessor, rvLib);
   }
@@ -188,7 +192,7 @@ function createCheckCallsForType(
       createCheckCallsForType(
         typeChecker,
         rvLib,
-        "item",
+        ["item"],
         type.typeArguments[0]
       );
     if (itemCheck) {
@@ -242,7 +246,7 @@ function createCheckCallsForType(
           return createCheckCallsForType(
             typeChecker,
             rvLib,
-            `${accessor}.${prop.getName()}`,
+            accessor.concat(prop.getName()),
             typeChecker.getTypeAtLocation(declaration)
           );
         }
@@ -275,7 +279,7 @@ export function createVisitor(typeChecker: ts.TypeChecker) {
             return createCheckCallsForType(
               typeChecker,
               rvlib,
-              argument.getText(),
+              [argument.getText()],
               typeChecker.getTypeAtLocation(argument)
             );
           })

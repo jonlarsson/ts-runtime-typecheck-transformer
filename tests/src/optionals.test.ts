@@ -1,4 +1,5 @@
 import { runtimeTypecheck } from "ts-runtime-typecheck-validations";
+import { expectToThrowRuntimeTypecheckError } from "./expectToThrowRuntimeTypecheckError";
 
 describe("optionals", () => {
   it("should allow an optional primitive to be null", () => {
@@ -17,13 +18,13 @@ describe("optionals", () => {
     expect(actual).not.toThrow();
   });
 
-  it("should not allow an optional primitive to be undefined", () => {
+  it("should not allow an optional string to be a number", () => {
     //@ts-ignore
     const optional: string | undefined = 1;
 
     const actual = () => runtimeTypecheck(optional);
 
-    expect(actual).toThrowError("optional: Not a string");
+    expectToThrowRuntimeTypecheckError(actual, "optional", "string", "number");
   });
 
   it("should not allow a non optional primitive to be null", () => {
@@ -32,7 +33,12 @@ describe("optionals", () => {
 
     const actual = () => runtimeTypecheck(nonOptional);
 
-    expect(actual).toThrowError("nonOptional: Not a boolean");
+    expectToThrowRuntimeTypecheckError(
+      actual,
+      "nonOptional",
+      "boolean",
+      "null"
+    );
   });
 
   it("should not allow a non optional primitive to be undefined", () => {
@@ -41,7 +47,12 @@ describe("optionals", () => {
 
     const actual = () => runtimeTypecheck(nonOptional);
 
-    expect(actual).toThrowError("nonOptional: Not a boolean");
+    expectToThrowRuntimeTypecheckError(
+      actual,
+      "nonOptional",
+      "boolean",
+      "undefined"
+    );
   });
 
   it("should allow an optional property to be undefined", () => {
@@ -58,7 +69,7 @@ describe("optionals", () => {
 
     const actual = () => runtimeTypecheck(obj);
 
-    expect(actual).toThrowError("obj.a: Not a number");
+    expectToThrowRuntimeTypecheckError(actual, "obj.a", "number", "boolean");
   });
 
   it("should not allow a non optional property to be undefined", () => {
@@ -67,6 +78,6 @@ describe("optionals", () => {
 
     const actual = () => runtimeTypecheck(obj);
 
-    expect(actual).toThrowError("obj.a: Not a number");
+    expectToThrowRuntimeTypecheckError(actual, "obj.a", "number", "undefined");
   });
 });

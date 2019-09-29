@@ -1,4 +1,5 @@
 import { runtimeTypecheck } from "ts-runtime-typecheck-validations";
+import { expectToThrowRuntimeTypecheckError } from "./expectToThrowRuntimeTypecheckError";
 
 describe("interfaces", () => {
   it("should fail if a boolean property is a number", () => {
@@ -11,7 +12,7 @@ describe("interfaces", () => {
 
     const actual = () => runtimeTypecheck(obj);
 
-    expect(actual).toThrowError("obj.a: Not a boolean");
+    expectToThrowRuntimeTypecheckError(actual, "obj.a", "boolean", "number");
   });
 
   it("should not fail on correct property type", () => {
@@ -38,6 +39,11 @@ describe("interfaces", () => {
 
     const actual = () => runtimeTypecheck(obj);
 
-    expect(actual).toThrowError("obj.nested.a: Not a boolean");
+    expectToThrowRuntimeTypecheckError(
+      actual,
+      "obj.nested.a",
+      "boolean",
+      "string"
+    );
   });
 });

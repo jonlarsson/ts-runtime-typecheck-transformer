@@ -1,143 +1,181 @@
-export interface PassedCheckResult {
-  ok: true;
+export interface RuntimeTypeError {
+  path: string[];
+  expected: string;
+  actual: string;
+}
+export interface CheckOutcome {
+  isOk(): boolean;
+  getErrors(): RuntimeTypeError[];
 }
 
-export const OK: PassedCheckResult = {
-  ok: true
-};
+export class OkOutcome implements CheckOutcome {
+  getErrors(): RuntimeTypeError[] {
+    return [];
+  }
 
-export interface FailedCheckResult {
-  ok: false;
-  accessor: string;
-  error: string;
-}
-``;
-
-export type CheckResult = PassedCheckResult | FailedCheckResult;
-
-function failedCheckToString(result: FailedCheckResult) {
-  return `${result.accessor}: ${result.error}`;
+  isOk(): boolean {
+    return true;
+  }
 }
 
-export function failedCheck(accessor: string, error: string) {
-  return {
-    ok: false,
-    error,
-    accessor
-  };
+export class FailOutcome implements CheckOutcome {
+  constructor(
+    private accessor: string,
+    private expected: string,
+    private actual: string
+  ) {}
+
+  getErrors(): RuntimeTypeError[] {
+    return [
+      { path: [this.accessor], expected: this.expected, actual: this.actual }
+    ];
+  }
+
+  isOk(): boolean {
+    return false;
+  }
 }
 
-export function isFailedCheckResult(
-  result: CheckResult
-): result is FailedCheckResult {
-  return !result.ok;
+class ArrayItemOutcome implements CheckOutcome {
+  constructor(private index: number, private wrappedOutcome: CheckOutcome) {}
+
+  getErrors(): RuntimeTypeError[] {
+    return this.wrappedOutcome.getErrors().map(error => ({
+      ...error,
+      path: [`[${this.index}]`, ...error.path.slice(1)]
+    }));
+  }
+
+  isOk(): boolean {
+    return this.wrappedOutcome.isOk();
+  }
 }
 
-export function checkNumber(num: any, accessor: string): CheckResult {
+enum AggregateCondition {
+  AND,
+  OR
+}
+
+class AggregatedOutcome implements CheckOutcome {
+  constructor(
+    private accessor: string,
+    private condition: AggregateCondition,
+    private childOutcomes: CheckOutcome[]
+  ) {}
+  getErrors(): RuntimeTypeError[] {
+    return this.childOutcomes
+      .map(notOkChild =>
+        notOkChild.getErrors().map(childError => ({
+          ...childError,
+          path: [this.accessor, ...childError.path]
+        }))
+      )
+      .flat();
+  }
+
+  isOk(): boolean {
+    if (this.condition === AggregateCondition.AND) {
+      return this.childOutcomes.every(child => child.isOk());
+    } else {
+      return this.childOutcomes.some(child => child.isOk());
+    }
+  }
+}
+
+function failedCheckToString(result: RuntimeTypeError) {
+  const accessor = result.path.join(".").replace(/\.\[/g, "[");
+  return `Expected '${accessor}' to be '${result.expected}', but is was '${result.actual}'`;
+}
+
+function typeName(value: unknown): string {
+  if (value === null) {
+    return "null";
+  }
+  if (typeof value === "object") {
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype && prototype.name) {
+      return prototype.name;
+    }
+    return "object";
+  }
+  return typeof value;
+}
+
+export function checkNumber(num: any, accessor: string): CheckOutcome {
   if (typeof num !== "number") {
-    return failedCheck(accessor, `Not a number, got '${typeof num}'`);
+    return new FailOutcome(accessor, "number", typeName(num));
   }
-  return OK;
+  return new OkOutcome();
 }
 
-export function checkString(str: any, accessor: string): CheckResult {
+export function checkString(str: any, accessor: string): CheckOutcome {
   if (typeof str !== "string") {
-    return failedCheck(accessor, `Not a string, got '${typeof str}'`);
+    return new FailOutcome(accessor, "string", typeName(str));
   }
-  return OK;
+  return new OkOutcome();
 }
 
-export function checkBoolean(bool: any, accessor: string): CheckResult {
+export function checkBoolean(bool: any, accessor: string): CheckOutcome {
   if (typeof bool !== "boolean") {
-    return failedCheck(accessor, `Not a boolean, got '${typeof bool}'`);
+    return new FailOutcome(accessor, "boolean", typeName(bool));
   }
-  return OK;
+  return new OkOutcome();
 }
 
 export function checkArray(
   array: any,
   accessor: string,
-  checkItem?: (item: any, index: number) => CheckResult
-): CheckResult {
+  checkItem?: (item: any, index: number) => CheckOutcome
+): CheckOutcome {
   if (Array.isArray(array)) {
-    const itemResults = checkItem ? array.map(checkItem) : [];
-    const failedResults: FailedCheckResult[] = itemResults
-      .map((itemResult, index) => {
-        if (isFailedCheckResult(itemResult)) {
-          return {
-            ...itemResult,
-            accessor: `${itemResult.accessor.replace(
-              /^[^.]*/,
-              accessor
-            )}[${index}]`
-          };
-        }
-        return itemResult;
-      })
-      .filter(isFailedCheckResult);
-    if (failedResults.length > 0) {
-      return failedCheck(
-        accessor,
-        failedResults.map(failedCheckToString).join(" AND ")
-      );
-    }
-    return OK;
+    const itemResults = checkItem
+      ? array
+          .map(checkItem)
+          .map((outcome, index) => new ArrayItemOutcome(index, outcome))
+      : [];
+    return new AggregatedOutcome(accessor, AggregateCondition.AND, itemResults);
   }
-  return failedCheck(accessor, `Not an array, got '${typeof array}'`);
+  return new FailOutcome(accessor, "Array", typeof array);
 }
 
 export function checkInterface(
-  checkResults: CheckResult[],
+  checkResults: CheckOutcome[],
   accessor: string
-): CheckResult {
-  const failedResults = checkResults.filter(isFailedCheckResult);
-  if (failedResults.length > 0) {
-    return failedCheck(
-      accessor,
-      failedResults.map(failedCheckToString).join(" AND ")
-    );
-  }
-  return OK;
+): CheckOutcome {
+  return new AggregatedOutcome(accessor, AggregateCondition.AND, checkResults);
 }
 
 export function checkUnion(
-  checkResults: CheckResult[],
+  checkResults: CheckOutcome[],
   accessor: string
-): CheckResult {
-  const failedResults = checkResults.filter(isFailedCheckResult);
-  if (failedResults.length === checkResults.length) {
-    return failedCheck(
-      accessor,
-      failedResults.map(failedCheckToString).join(" AND ")
-    );
-  }
-  return OK;
+): CheckOutcome {
+  return new AggregatedOutcome(accessor, AggregateCondition.OR, checkResults);
 }
 
 export function checkOptional(
   optional: any,
-  onDefined: () => CheckResult
-): CheckResult {
+  onDefined: () => CheckOutcome
+): CheckOutcome {
   if (optional !== undefined && optional !== null) {
     return onDefined();
   }
-  return OK;
+  return new OkOutcome();
 }
 
-function createErrorMessageFromFailedChecks(failedChecks: FailedCheckResult[]) {
+function createErrorMessageFromFailedChecks(failedChecks: RuntimeTypeError[]) {
   const failedChecksString = failedChecks.map(failedCheckToString).join(", ");
-  return `Runtime types does not match expected types: ${failedChecksString}`;
+  return `Runtime type check failed: ${failedChecksString}`;
 }
 
 export class TypeCheckFailedError extends Error {}
 
-export function assertType<T>(value: T, checkResults: CheckResult[]): T {
-  const failedChecks: FailedCheckResult[] = checkResults.filter(
-    isFailedCheckResult
-  );
-  if (failedChecks.length > 0) {
+export function assertType<T>(value: T, checkResults: CheckOutcome[]): T {
+  const failedOutcomes = checkResults.filter(outome => !outome.isOk());
+  if (failedOutcomes.length > 0) {
     throw new TypeCheckFailedError(
-      createErrorMessageFromFailedChecks(failedChecks)
+      createErrorMessageFromFailedChecks(
+        failedOutcomes.map(outcome => outcome.getErrors()).flat()
+      )
     );
   }
   return value;

@@ -1,13 +1,14 @@
 import { runtimeTypecheck } from "ts-runtime-typecheck-validations";
+import { expectToThrowRuntimeTypecheckError } from "./expectToThrowRuntimeTypecheckError";
 
-describe("optionals", () => {
+describe("arrays", () => {
   it("should not allow an object that is not an array", () => {
     //@ts-ignore
     const obj: number[] = {};
 
     const actual = () => runtimeTypecheck(obj);
 
-    expect(actual).toThrowError("obj: Not an array");
+    expectToThrowRuntimeTypecheckError(actual, "obj", "Array", "object");
   });
 
   it("should allow an empty array", () => {
@@ -24,7 +25,7 @@ describe("optionals", () => {
 
     const actual = () => runtimeTypecheck(array);
 
-    expect(actual).toThrowError("array[0]: Not a number");
+    expectToThrowRuntimeTypecheckError(actual, "array[0]", "number", "boolean");
   });
 
   it("should allow arrays with any items", () => {
@@ -41,6 +42,11 @@ describe("optionals", () => {
 
     const actual = () => runtimeTypecheck(array);
 
-    expect(actual).toThrowError("item.num: Not a number");
+    expectToThrowRuntimeTypecheckError(
+      actual,
+      "array[1].num",
+      "number",
+      "boolean"
+    );
   });
 });
