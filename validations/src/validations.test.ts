@@ -1,3 +1,5 @@
+import { describe, it } from "mocha";
+import { expect } from "chai";
 import { checkOptional, FailOutcome } from "./validations";
 
 describe("validations", () => {
@@ -7,7 +9,7 @@ describe("validations", () => {
       () => new FailOutcome("obj", "string", "undefined")
     );
 
-    expect(actual.isOk()).toBe(true);
+    expect(actual.isOk()).to.be.true;
   });
 
   it("checkOptional should allow value to be null", () => {
@@ -16,6 +18,6 @@ describe("validations", () => {
       () => new FailOutcome("obj", "string", "undefined")
     );
 
-    expect(actual.isOk()).toBe(true);
+    expect(actual.isOk()).to.be.true;
   });
 });
