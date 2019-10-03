@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { describe } from "mocha";
-import { runtimeTypecheck } from "ts-runtime-typecheck-validations";
+import { describe, it } from "mocha";
+import { runtimeTypecheck } from "@ts-rtc/validations";
 import { expectToThrowRuntimeTypecheckError } from "./expectToThrowRuntimeTypecheckError";
 
 describe("arrays", () => {

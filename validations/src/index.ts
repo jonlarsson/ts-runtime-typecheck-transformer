@@ -6,7 +6,8 @@ export {
   checkOptional,
   checkString,
   checkUnion,
-  checkArray
+  checkArray,
+  TypeCheckFailedError
 } from "./validations";
 
 export function runtimeTypecheck(...variable: any): void {}

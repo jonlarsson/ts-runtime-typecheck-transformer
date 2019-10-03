@@ -1,4 +1,4 @@
-import { runtimeTypecheck } from "ts-runtime-typecheck-validations";
+import { runtimeTypecheck } from "@ts-rtc/validations";
 
 export interface Ab {
   a: string;

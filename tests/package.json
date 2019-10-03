@@ -1,5 +1,5 @@
 {
-  "name": "ts-runtime-typecheck-tests",
+  "name": "@ts-rtc/tests",
   "version": "1.0.0",
   "private": true,
   "main": "dest/index.js",
@@ -10,15 +10,15 @@
     "chai": "^4.2.0",
     "mocha": "^6.2.1",
     "ts-node": "^8.4.1",
-    "ts-runtime-typecheck-transformer": "^1.0.0",
-    "ts-runtime-typecheck-validations": "^1.0.0",
+    "@ts-rtc/transformer": "^1.0.0",
+    "@ts-rtc/validations": "^1.0.0",
     "typescript": "^3.5.2",
     "@types/node": "^12.0.8"
   },
   "scripts": {
     "build": "ts-runtime-typecheck-compile",
     "test": "yarn test-ts && yarn test-compiled",
-    "test-ts": "mocha --require ts-runtime-typecheck-transformer/dest/register **/*.test.ts",
+    "test-ts": "mocha --require @ts-rtc/transformer/dest/register **/*.test.ts",
     "test-compiled": "yarn build && mocha **/*.test.js"
   }
 }

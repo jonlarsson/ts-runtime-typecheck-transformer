@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { TypeCheckFailedError } from "ts-runtime-typecheck-validations/dest/validations";
+import { TypeCheckFailedError } from "@ts-rtc/validations";
 
 export function expectToThrowRuntimeTypecheckError(
   closure: () => void,

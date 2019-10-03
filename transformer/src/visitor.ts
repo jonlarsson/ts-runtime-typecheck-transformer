@@ -289,9 +289,7 @@ export function createVisitor(typeChecker: ts.TypeChecker) {
       } else if (
         ts.isImportDeclaration(node) &&
         ts.isStringLiteral(node.moduleSpecifier) &&
-        /["'`]ts-runtime-typecheck-validations["'`]/.test(
-          node.moduleSpecifier.getText()
-        )
+        /["'`]@ts-rtc\/validations["'`]/.test(node.moduleSpecifier.getText())
       ) {
         if (
           node.importClause &&
@@ -306,18 +304,19 @@ export function createVisitor(typeChecker: ts.TypeChecker) {
           );
           if (runtimeTypecheckBinding) {
             placeholderFunctionName = runtimeTypecheckBinding.name.getText();
+            const importClause = ts.createImportClause(
+              undefined,
+              ts.createNamespaceImport(rvlib)
+            );
+            return ts.createImportDeclaration(
+              [],
+              [],
+              importClause,
+              ts.createStringLiteral("@ts-rtc/validations")
+            );
           }
+          return node;
         }
-        const importClause = ts.createImportClause(
-          undefined,
-          ts.createNamespaceImport(rvlib)
-        );
-        return ts.createImportDeclaration(
-          [],
-          [],
-          importClause,
-          ts.createStringLiteral("ts-runtime-typecheck-validations")
-        );
       } else {
         return ts.visitEachChild(node, visitor, ctx);
       }
