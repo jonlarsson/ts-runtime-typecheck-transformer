@@ -1,3 +1,5 @@
+import { expect } from "chai";
+import { describe } from "mocha";
 import { runtimeTypecheck } from "ts-runtime-typecheck-validations";
 import { expectToThrowRuntimeTypecheckError } from "./expectToThrowRuntimeTypecheckError";
 
@@ -16,7 +18,7 @@ describe("arrays", () => {
 
     const actual = () => runtimeTypecheck(array);
 
-    expect(actual).not.toThrow();
+    expect(actual).not.to.throw();
   });
 
   it("should not allow an array item of wrong type", () => {
@@ -33,7 +35,7 @@ describe("arrays", () => {
 
     const actual = () => runtimeTypecheck(array);
 
-    expect(actual).not.toThrow();
+    expect(actual).not.to.throw();
   });
 
   it("should not allow an object array item with wrong member", () => {

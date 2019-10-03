@@ -1,3 +1,4 @@
+import { expect } from "chai";
 import { TypeCheckFailedError } from "ts-runtime-typecheck-validations/dest/validations";
 
 export function expectToThrowRuntimeTypecheckError(
@@ -6,13 +7,13 @@ export function expectToThrowRuntimeTypecheckError(
   expected: string,
   actual: string
 ) {
-  expect(closure).toThrowError();
+  expect(closure).to.throw();
   try {
     closure();
   } catch (error) {
-    expect(error).toBeInstanceOf(TypeCheckFailedError);
-    expect(error.message).toMatch(accessor);
-    expect(error.message).toMatch(expected);
-    expect(error.message).toMatch(actual);
+    expect(error).to.be.instanceOf(TypeCheckFailedError);
+    expect(error.message).to.contain(accessor);
+    expect(error.message).to.contain(expected);
+    expect(error.message).to.contain(actual);
   }
 }

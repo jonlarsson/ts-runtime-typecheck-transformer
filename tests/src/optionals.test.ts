@@ -1,3 +1,5 @@
+import { expect } from "chai";
+import { describe } from "mocha";
 import { runtimeTypecheck } from "ts-runtime-typecheck-validations";
 import { expectToThrowRuntimeTypecheckError } from "./expectToThrowRuntimeTypecheckError";
 
@@ -7,7 +9,7 @@ describe("optionals", () => {
 
     const actual = () => runtimeTypecheck(optional);
 
-    expect(actual).not.toThrow();
+    expect(actual).not.to.throw();
   });
 
   it("should allow an optional primitive to be undefined", () => {
@@ -15,7 +17,7 @@ describe("optionals", () => {
 
     const actual = () => runtimeTypecheck(optional);
 
-    expect(actual).not.toThrow();
+    expect(actual).not.to.throw();
   });
 
   it("should not allow an optional string to be a number", () => {
@@ -60,7 +62,7 @@ describe("optionals", () => {
 
     const actual = () => runtimeTypecheck(obj);
 
-    expect(actual).not.toThrow();
+    expect(actual).not.to.throw();
   });
 
   it("should not allow an optional property to have the wrong type", () => {

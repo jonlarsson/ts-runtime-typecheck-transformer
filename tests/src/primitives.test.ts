@@ -1,3 +1,5 @@
+import { expect } from "chai";
+import { describe } from "mocha";
 import { runtimeTypecheck } from "ts-runtime-typecheck-validations";
 import { expectToThrowRuntimeTypecheckError } from "./expectToThrowRuntimeTypecheckError";
 
@@ -15,7 +17,7 @@ describe("primitives", () => {
       const a: number = 1;
       const actual = () => runtimeTypecheck(a);
 
-      expect(actual).not.toThrow();
+      expect(actual).not.to.throw();
     });
   });
 
@@ -32,7 +34,7 @@ describe("primitives", () => {
       const a: boolean = true;
       const actual = () => runtimeTypecheck(a);
 
-      expect(actual).not.toThrow();
+      expect(actual).not.to.throw();
     });
   });
 
@@ -49,7 +51,7 @@ describe("primitives", () => {
       const a: string = "an actual string";
       const actual = () => runtimeTypecheck(a);
 
-      expect(actual).not.toThrow();
+      expect(actual).not.to.throw();
     });
   });
 });

@@ -1,3 +1,5 @@
+import { expect } from "chai";
+import { describe } from "mocha";
 import { runtimeTypecheck } from "ts-runtime-typecheck-validations";
 import { expectToThrowRuntimeTypecheckError } from "./expectToThrowRuntimeTypecheckError";
 
@@ -24,7 +26,7 @@ describe("interfaces", () => {
 
     const actual = () => runtimeTypecheck(obj);
 
-    expect(actual).not.toThrow();
+    expect(actual).not.to.throw();
   });
 
   it("should fail if a nested boolean number is a string", () => {
