@@ -37,11 +37,26 @@ function unsafeCall(): any {
 // const a: {cow: NumStr} = unsafeCall();
 // runtimeTypecheck(a);
 
-const array: [] = unsafeCall();
-runtimeTypecheck(array);
+// const array: [] = unsafeCall();
+// runtimeTypecheck(array);
+//
+// const array2: number[] = unsafeCall();
+// runtimeTypecheck(array2);
+//
+// const array3: NumStr[] = unsafeCall();
+// runtimeTypecheck(array3);
 
-const array2: number[] = unsafeCall();
-runtimeTypecheck(array2);
+// enum Num {
+//   One = 1,
+//   Two = 2
+// }
+//
+// const num: Num = unsafeCall();
+//
+// runtimeTypecheck(num);
 
-const array3: NumStr[] = unsafeCall();
-runtimeTypecheck(array3);
+const yes: true = unsafeCall();
+const no: false = unsafeCall();
+
+runtimeTypecheck(yes);
+runtimeTypecheck(no);

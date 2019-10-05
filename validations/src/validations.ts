@@ -51,15 +51,9 @@ class ArrayItemOutcome implements CheckOutcome {
   }
 }
 
-enum AggregateCondition {
-  AND,
-  OR
-}
-
-class AggregatedOutcome implements CheckOutcome {
+class InterfaceOutcome implements CheckOutcome {
   constructor(
     private accessor: string,
-    private condition: AggregateCondition,
     private childOutcomes: CheckOutcome[]
   ) {}
   getErrors(): RuntimeTypeError[] {
@@ -74,11 +68,21 @@ class AggregatedOutcome implements CheckOutcome {
   }
 
   isOk(): boolean {
-    if (this.condition === AggregateCondition.AND) {
-      return this.childOutcomes.every(child => child.isOk());
-    } else {
-      return this.childOutcomes.some(child => child.isOk());
-    }
+    return this.childOutcomes.every(child => child.isOk());
+  }
+}
+
+class UnionOutcome implements CheckOutcome {
+  constructor(
+    private accessor: string,
+    private childOutcomes: CheckOutcome[]
+  ) {}
+  getErrors(): RuntimeTypeError[] {
+    return this.childOutcomes.map(outcome => outcome.getErrors()).flat();
+  }
+
+  isOk(): boolean {
+    return this.childOutcomes.some(child => child.isOk());
   }
 }
 
@@ -122,6 +126,51 @@ export function checkBoolean(bool: any, accessor: string): CheckOutcome {
   return new OkOutcome();
 }
 
+export function checkNumberLiteral(
+  num: any,
+  accessor: string,
+  expectedNumber: number
+): CheckOutcome {
+  const numberCheck = checkNumber(num, accessor);
+  if (!numberCheck.isOk()) {
+    return numberCheck;
+  }
+  if (num !== expectedNumber) {
+    return new FailOutcome(accessor, `${expectedNumber}`, `${num}`);
+  }
+  return new OkOutcome();
+}
+
+export function checkStringLiteral(
+  str: any,
+  accessor: string,
+  expectedString: string
+): CheckOutcome {
+  const stringCheck = checkString(str, accessor);
+  if (!stringCheck.isOk()) {
+    return stringCheck;
+  }
+  if (str !== expectedString) {
+    return new FailOutcome(accessor, `${expectedString}`, `'${str}'`);
+  }
+  return new OkOutcome();
+}
+
+export function checkBooleanLiteral(
+  bool: any,
+  accessor: string,
+  expectedBoolean: string
+): CheckOutcome {
+  const stringCheck = checkBoolean(bool, accessor);
+  if (!stringCheck.isOk()) {
+    return stringCheck;
+  }
+  if (bool !== expectedBoolean) {
+    return new FailOutcome(accessor, `${expectedBoolean}`, `'${bool}'`);
+  }
+  return new OkOutcome();
+}
+
 export function checkArray(
   array: any,
   accessor: string,
@@ -133,7 +182,7 @@ export function checkArray(
           .map(checkItem)
           .map((outcome, index) => new ArrayItemOutcome(index, outcome))
       : [];
-    return new AggregatedOutcome(accessor, AggregateCondition.AND, itemResults);
+    return new InterfaceOutcome(accessor, itemResults);
   }
   return new FailOutcome(accessor, "Array", typeof array);
 }
@@ -142,14 +191,14 @@ export function checkInterface(
   checkResults: CheckOutcome[],
   accessor: string
 ): CheckOutcome {
-  return new AggregatedOutcome(accessor, AggregateCondition.AND, checkResults);
+  return new InterfaceOutcome(accessor, checkResults);
 }
 
 export function checkUnion(
   checkResults: CheckOutcome[],
   accessor: string
 ): CheckOutcome {
-  return new AggregatedOutcome(accessor, AggregateCondition.OR, checkResults);
+  return new UnionOutcome(accessor, checkResults);
 }
 
 export function checkOptional(

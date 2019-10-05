@@ -41,6 +41,60 @@ function createCheckBooleanCall(
   );
 }
 
+function createCheckNumberLiteralCall(
+  path: string[],
+  expected: number,
+  rvLib: ts.Identifier
+) {
+  return ts.createExpressionStatement(
+    ts.createCall(
+      ts.createPropertyAccess(rvLib, "checkNumberLiteral"),
+      undefined,
+      [
+        accessorFromPath(path),
+        identifierFromPath(path),
+        ts.createNumericLiteral(`${expected}`)
+      ]
+    )
+  );
+}
+
+function createCheckBooleanLiteralCall(
+  path: string[],
+  expected: boolean,
+  rvLib: ts.Identifier
+) {
+  return ts.createExpressionStatement(
+    ts.createCall(
+      ts.createPropertyAccess(rvLib, "checkBooleanLiteral"),
+      undefined,
+      [
+        accessorFromPath(path),
+        identifierFromPath(path),
+        expected ? ts.createTrue() : ts.createFalse()
+      ]
+    )
+  );
+}
+
+function createCheckStringLiteralCall(
+  path: string[],
+  expected: string,
+  rvLib: ts.Identifier
+) {
+  return ts.createExpressionStatement(
+    ts.createCall(
+      ts.createPropertyAccess(rvLib, "checkStringLiteral"),
+      undefined,
+      [
+        accessorFromPath(path),
+        identifierFromPath(path),
+        ts.createStringLiteral(expected)
+      ]
+    )
+  );
+}
+
 function createCheckInterfaceCall(
   checks: ts.ExpressionStatement[],
   path: string[],
@@ -94,7 +148,7 @@ function createCheckUnionCall(
         checks.map(statement => statement.expression),
         true
       ),
-      accessorFromPath(path)
+      identifierFromPath(path)
     ])
   );
 }
@@ -166,6 +220,21 @@ function isArrayType(type: ts.Type): type is ts.ObjectType {
   );
 }
 
+interface BooleanLiteral extends ts.Type {
+  intrinsicName: string;
+}
+function isBooleanLitral(type: ts.Type): type is BooleanLiteral {
+  return Boolean(type.getFlags() & ts.TypeFlags.BooleanLiteral);
+}
+
+function isNumberLiteral(type: ts.Type): type is ts.NumberLiteralType {
+  return Boolean(type.getFlags() & ts.TypeFlags.NumberLiteral);
+}
+
+function isStringLiteral(type: ts.Type): type is ts.StringLiteralType {
+  return Boolean(type.getFlags() & ts.TypeFlags.StringLiteral);
+}
+
 function createCheckCallsForType(
   typeChecker: ts.TypeChecker,
   rvLib: ts.Identifier,
@@ -183,6 +252,19 @@ function createCheckCallsForType(
   }
   if (type.getFlags() & ts.TypeFlags.Boolean) {
     return createCheckBooleanCall(accessor, rvLib);
+  }
+  if (isNumberLiteral(type)) {
+    return createCheckNumberLiteralCall(accessor, type.value, rvLib);
+  }
+  if (isStringLiteral(type)) {
+    return createCheckStringLiteralCall(accessor, type.value, rvLib);
+  }
+  if (isBooleanLitral(type)) {
+    return createCheckBooleanLiteralCall(
+      accessor,
+      type.intrinsicName === "true",
+      rvLib
+    );
   }
   if (isArrayType(type)) {
     const itemCheck =

@@ -7,6 +7,9 @@ export {
   checkString,
   checkUnion,
   checkArray,
+  checkBooleanLiteral,
+  checkNumberLiteral,
+  checkStringLiteral,
   TypeCheckFailedError
 } from "./validations";
 

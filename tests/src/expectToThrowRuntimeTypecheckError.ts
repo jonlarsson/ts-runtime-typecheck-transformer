@@ -11,6 +11,7 @@ export function expectToThrowRuntimeTypecheckError(
   try {
     closure();
   } catch (error) {
+    console.log(error.message);
     expect(error).to.be.instanceOf(TypeCheckFailedError);
     expect(error.message).to.contain(accessor);
     expect(error.message).to.contain(expected);
