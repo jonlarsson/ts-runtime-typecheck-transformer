@@ -241,8 +241,21 @@ function createCheckCallsForType(
   accessor: string[],
   type?: ts.Type
 ): ts.ExpressionStatement | null {
+  const references = new Map<string, ts.Type>();
   if (!type) {
     return null;
+  }
+  if (isTypeReference(type) && type.target.typeParameters) {
+    type.target.typeParameters.forEach((typeParameter, index) => {
+      const typeArguments = type.typeArguments;
+      const symbol = typeParameter.getSymbol();
+      if (!symbol || !typeArguments) {
+        return;
+      }
+      const typeArgument = typeArguments[index];
+      const name = symbol.getName();
+      references.set(name, typeArgument);
+    });
   }
   if (type.getFlags() & ts.TypeFlags.Number) {
     return createCheckNumCall(accessor, rvLib);
@@ -325,11 +338,18 @@ function createCheckCallsForType(
       .map(prop => {
         const declaration = prop.declarations[0];
         if (declaration && ts.isPropertySignature(declaration)) {
+          let propType = typeChecker.getTypeAtLocation(declaration);
+          if (propType.isTypeParameter()) {
+            const symbol = propType.getSymbol();
+            if (symbol && references.has(symbol.getName())) {
+              propType = references.get(symbol.getName())!;
+            }
+          }
           return createCheckCallsForType(
             typeChecker,
             rvLib,
             accessor.concat(prop.getName()),
-            typeChecker.getTypeAtLocation(declaration)
+            propType
           );
         }
         return null;
