@@ -1,7 +1,9 @@
 {
   "name": "@ts-rtc/transformer",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "main": "dest/index.js",
+  "files": ["dest", "package.json", "LICENSE"],
+  "private": false,
   "bin": {
     "ts-runtime-typecheck-compile": "dest/cli.js"
   },
@@ -9,12 +11,13 @@
   "dependencies": {
     "ts-node": "^8.4.1",
     "typescript": "^3.5.2",
-    "@ts-rtc/validations": "^1.0.0"
+    "@ts-rtc/validations": "^0.0.1"
   },
   "devDependencies": {
     "@types/node": "^12.0.8"
   },
   "scripts": {
+    "prepublish": "rm -r dest && yarn build",
     "compile-examples": "ts-node src/cli.ts examples/tsconfig.json",
     "build": "tsc",
     "watch": "tsc --watch"
