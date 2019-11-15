@@ -13,12 +13,16 @@
     "@ts-rtc/transformer": "^1.0.0",
     "@ts-rtc/validations": "^1.0.0",
     "typescript": "^3.5.2",
-    "@types/node": "^12.0.8"
+    "@types/node": "^12.0.8",
+    "ts-loader": "^6.2.1",
+    "webpack": "^4.11.1",
+    "webpack-cli": "^3.3.6"
   },
   "scripts": {
     "build": "ts-runtime-typecheck-compile",
-    "test": "yarn test-ts && yarn test-compiled",
+    "test": "yarn test-ts && yarn test-compiled && yarn test-webpack",
     "test-ts": "mocha --require @ts-rtc/transformer/dest/register **/*.test.ts",
-    "test-compiled": "yarn build && mocha **/*.test.js"
+    "test-compiled": "yarn build && mocha **/*.test.js",
+    "test-webpack": "webpack && mocha dest/tsloader.webpack.js"
   }
 }

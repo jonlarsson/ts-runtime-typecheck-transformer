@@ -46,10 +46,10 @@ function unsafeCall(): any {
 // const array3: NumStr[] = unsafeCall();
 // runtimeTypecheck(array3);
 
-enum Num {
-  One = 1,
-  Two = 2
-}
+// enum Num {
+//   One = 1,
+//   Two = 2
+// }
 //
 // const num: Num = unsafeCall();
 //
@@ -61,12 +61,15 @@ enum Num {
 // runtimeTypecheck(yes);
 // runtimeTypecheck(no);
 
-interface A<T, X> {
-  a: T;
-  b: number;
-  c: X;
-}
+// interface A<T, X> {
+//   a: T;
+//   b: number;
+//   c: X;
+// }
+//
+// const aBool: A<boolean, Num> = unsafeCall();
+//
+// runtimeTypecheck(aBool);
 
-const aBool: A<boolean, Num> = unsafeCall();
-
-runtimeTypecheck(aBool);
+const array: number[] = unsafeCall();
+runtimeTypecheck(array);
