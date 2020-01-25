@@ -235,15 +235,28 @@ function isStringLiteral(type: ts.Type): type is ts.StringLiteralType {
   return Boolean(type.getFlags() & ts.TypeFlags.StringLiteral);
 }
 
+type IdType = ts.Type & { id: number };
+
+function isIdType(type: ts.Type): type is IdType {
+  return Boolean((type as IdType).id);
+}
+
 function createCheckCallsForType(
   typeChecker: ts.TypeChecker,
   rvLib: ts.Identifier,
   accessor: string[],
+  types: Set<number>,
   type?: ts.Type
 ): ts.ExpressionStatement | null {
   const references = new Map<string, ts.Type>();
   if (!type) {
     return null;
+  }
+  if (isIdType(type)) {
+    if (types.has(type.id)) {
+      return null;
+    }
+    types.add(type.id);
   }
   if (isTypeReference(type) && type.target.typeParameters) {
     type.target.typeParameters.forEach((typeParameter, index) => {
@@ -288,6 +301,7 @@ function createCheckCallsForType(
         typeChecker,
         rvLib,
         ["item"],
+        types,
         type.typeArguments[0]
       );
     if (itemCheck) {
@@ -305,6 +319,7 @@ function createCheckCallsForType(
           typeChecker,
           rvLib,
           accessor,
+          types,
           typesExceptOptional[0]
         );
         return isExpressionStatement(checkCall)
@@ -314,7 +329,7 @@ function createCheckCallsForType(
       const checkUnionCall = createCheckUnionCall(
         typesExceptOptional
           .map(type =>
-            createCheckCallsForType(typeChecker, rvLib, accessor, type)
+            createCheckCallsForType(typeChecker, rvLib, accessor, types, type)
           )
           .filter(isExpressionStatement),
         accessor,
@@ -325,7 +340,7 @@ function createCheckCallsForType(
     return createCheckUnionCall(
       type.types
         .map(type =>
-          createCheckCallsForType(typeChecker, rvLib, accessor, type)
+          createCheckCallsForType(typeChecker, rvLib, accessor, types, type)
         )
         .filter(isExpressionStatement),
       accessor,
@@ -349,6 +364,7 @@ function createCheckCallsForType(
             typeChecker,
             rvLib,
             accessor.concat(prop.getName()),
+            types,
             propType
           );
         }
@@ -382,6 +398,7 @@ export function createVisitor(typeChecker: ts.TypeChecker) {
               typeChecker,
               rvlib,
               [argument.getText()],
+              new Set(),
               typeChecker.getTypeAtLocation(argument)
             );
           })
