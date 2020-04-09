@@ -18,12 +18,30 @@ export interface NumStr {
   both: string | number;
 }
 
+interface Pong {
+  o: 1;
+  ping: Ping;
+}
+
+interface Ping {
+  i: 1;
+  pong: Pong;
+}
+
+interface Circular {
+  name: string;
+  child?: Circular;
+}
+
 function unsafeCall(): any {
   return {};
 }
+
+const a: Pong = unsafeCall();
+runtimeTypecheck(a);
 // const ape: NumStr = unsafeCall();
 //
-// runtimeTypecheck(ape)
+// runtimeTypecheck(ape);
 //
 // export function annotated(num: number, str: string, numstr: NumStr): void {
 //   runtimeTypecheck(num, str, numstr);
@@ -71,5 +89,5 @@ function unsafeCall(): any {
 //
 // runtimeTypecheck(aBool);
 
-const array: number[] = unsafeCall();
-runtimeTypecheck(array);
+// const array: number[] = unsafeCall();
+// runtimeTypecheck(array);
