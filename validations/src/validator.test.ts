@@ -1,6 +1,7 @@
 import { describe, it } from "mocha";
 import { expect } from "chai";
 import {
+  array,
   createValidator,
   or,
   props,
@@ -12,6 +13,7 @@ import {
 interface Circular {
   a: string;
   child: Circular | null;
+  arr: Circular[];
 }
 
 describe("validator", () => {
@@ -20,8 +22,10 @@ describe("validator", () => {
       a: "a",
       child: {
         a: "b",
-        child: null
-      }
+        child: null,
+        arr: []
+      },
+      arr: [{ a: "c", child: null, arr: [] }]
     };
 
     const invalidValue = {
@@ -29,7 +33,8 @@ describe("validator", () => {
       child: {
         b: "b",
         child: null
-      }
+      },
+      arr: [{ a: "c", child: null, arr: null }]
     };
 
     const validator = createValidator((index, provider) => {
@@ -37,7 +42,12 @@ describe("validator", () => {
         "Circular",
         props(
           ["a", value => value.a, str],
-          ["child", value => value.child, or(value(null), provider("Circular"))]
+          [
+            "child",
+            value => value.child,
+            or(value(null), provider("Circular"))
+          ],
+          ["arr", value => value.arr, array(provider("Circular"))]
         )
       );
     });

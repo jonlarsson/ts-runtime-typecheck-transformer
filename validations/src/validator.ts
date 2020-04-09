@@ -2,7 +2,8 @@ enum ValidationType {
   Type,
   Value,
   Properties,
-  Union
+  Union,
+  Array
 }
 export interface ValidType {
   valid: true;
@@ -27,6 +28,17 @@ export interface InvalidProperty {
   result: InvalidResult;
 }
 
+export interface InvalidArrayItem {
+  index: number;
+  result: InvalidResult;
+}
+
+export interface InvalidArrayItems {
+  validationType: ValidationType.Array;
+  valid: false;
+  items: InvalidArrayItem[];
+}
+
 export interface InvalidProperties {
   validationType: ValidationType.Properties;
   valid: false;
@@ -43,7 +55,8 @@ export type InvalidResult =
   | InvalidType
   | InvalidProperties
   | InvalidValue
-  | InvalidUnion;
+  | InvalidUnion
+  | InvalidArrayItems;
 
 export type ValidationResult = ValidType | InvalidResult;
 
@@ -86,6 +99,11 @@ function isInvalidUnion(result: InvalidResult): result is InvalidUnion {
   return result.validationType === ValidationType.Union;
 }
 
+function isInvalidArray(
+  result: InvalidArrayItems
+): result is InvalidArrayItems {
+  return result.validationType === ValidationType.Array;
+}
 class IdValidatorIndex {
   private index = new Map<string, Validator>();
 
@@ -160,7 +178,17 @@ export const bool = typeValidator("bool");
 
 export const str = typeValidator("string");
 
-const objectTypeValidator = typeValidator("object");
+const objectTypeValidator = (value: unknown): ValidationResult => {
+  if (value === null) {
+    return {
+      validationType: ValidationType.Type,
+      valid: false,
+      actual: "null",
+      expected: "object"
+    };
+  }
+  return typeValidator("object")(value);
+};
 
 export function value(expectedValue: unknown): Validator {
   return function validateValue(actualValue: unknown): ValidationResult {
@@ -193,9 +221,7 @@ export function propertyValidator([
   };
 }
 
-function isInvalidProperty(
-  result: InvalidProperty | null
-): result is InvalidProperty {
+function isNotNull<T>(result: T | null): result is T {
   return result !== null;
 }
 
@@ -207,7 +233,7 @@ export function props(...properties: Property[]): Validator {
     }
     const results = properties
       .map(property => propertyValidator(property)(value))
-      .filter(isInvalidProperty);
+      .filter(isNotNull);
 
     if (results.length === 0) {
       return { valid: true };
@@ -239,6 +265,39 @@ export function or(...validators: ValidatorOrProvider[]): Validator {
   };
 }
 
+export function array(itemValidator: ValidatorOrProvider): Validator {
+  return function arrayValidator(value: unknown): ValidationResult {
+    if (Array.isArray(value)) {
+      const invalidItems = value
+        .map(item => get(itemValidator)(item))
+        .map((itemResult, index): InvalidArrayItem | null => {
+          if (isInvalidResult(itemResult)) {
+            return {
+              index,
+              result: itemResult
+            };
+          }
+          return null;
+        })
+        .filter(isNotNull);
+      if (invalidItems.length === 0) {
+        return { valid: true };
+      }
+      return {
+        validationType: ValidationType.Array,
+        valid: false,
+        items: invalidItems
+      };
+    }
+    return {
+      validationType: ValidationType.Type,
+      valid: false,
+      expected: "Array",
+      actual: value === null ? "null" : typeof value
+    };
+  };
+}
+
 function describeValue(value: unknown) {
   let stringValue = `${value}`;
   if (typeof value === "object" && value !== null) {
@@ -252,20 +311,24 @@ function describeValue(value: unknown) {
   return stringValue;
 }
 
+function joinPath(path: string[]): string {
+  return path.join(".").replace(/\.\[/g, "[");
+}
+
 function describeInvalidResult(
   result: InvalidResult,
   path: string[]
 ): string[] {
   if (isInvalidType(result)) {
     return [
-      `${path.join(".")}: expected type "${result.expected}" but was ${
+      `${joinPath(path)}: expected type "${result.expected}" but was ${
         result.actual
       }`
     ];
   }
   if (isInvalidValue(result)) {
     return [
-      `${path.join(".")}: expected value "${
+      `${joinPath(path)}: expected value "${
         result.expectedValue
       }" but was ${describeValue(result.actualValue)}`
     ];
@@ -278,6 +341,18 @@ function describeInvalidResult(
   if (isInvalidUnion(result)) {
     return result.unionParts
       .map(part => describeInvalidResult(part, path))
+      .flat();
+  }
+  if (isInvalidArray(result)) {
+    return result.items
+      .map(item =>
+        describeInvalidResult(
+          item.result,
+          path
+            .slice(0, path.length - 1)
+            .concat(`${path[path.length - 1]}[${item.index}]`)
+        )
+      )
       .flat();
   }
   throw new Error("Unsupported validation type");
