@@ -24,7 +24,7 @@ interface Pong {
 }
 
 interface Ping {
-  i: 1;
+  i: number;
   pong: Pong;
 }
 

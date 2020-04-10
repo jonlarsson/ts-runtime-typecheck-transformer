@@ -1,3 +1,5 @@
+import { TypeCheckFailedError } from "./validations";
+
 enum ValidationType {
   Type,
   Value,
@@ -174,7 +176,7 @@ function typeValidator(expectedType: string): Validator {
 
 export const num = typeValidator("number");
 
-export const bool = typeValidator("bool");
+export const bool = typeValidator("boolean");
 
 export const str = typeValidator("string");
 
@@ -363,4 +365,16 @@ export function resultAsString(result: ValidationResult, name: string): string {
     return describeInvalidResult(result, [name]).join("\n");
   }
   return "OK";
+}
+
+export function assertValidType(
+  name: string,
+  value: unknown,
+  factory: ValidatorFactory
+): void {
+  const validator = createValidator(factory);
+  const result = validator(value);
+  if (isInvalidResult(result)) {
+    throw new TypeCheckFailedError(resultAsString(result, name));
+  }
 }

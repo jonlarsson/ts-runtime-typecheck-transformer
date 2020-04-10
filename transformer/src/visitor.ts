@@ -1,198 +1,5 @@
 import * as ts from "typescript";
 
-function accessorFromPath(path: string[]) {
-  return ts.createIdentifier(path.join("."));
-}
-
-function identifierFromPath(path: string[]) {
-  return ts.createStringLiteral(path[path.length - 1]);
-}
-
-function createCheckNumCall(path: string[], rvLib: ts.Identifier) {
-  return ts.createExpressionStatement(
-    ts.createCall(ts.createPropertyAccess(rvLib, "checkNumber"), undefined, [
-      accessorFromPath(path),
-      identifierFromPath(path)
-    ])
-  );
-}
-
-function createCheckStringCall(
-  path: string[],
-  rvLib: ts.Identifier
-): ts.ExpressionStatement {
-  return ts.createExpressionStatement(
-    ts.createCall(ts.createPropertyAccess(rvLib, "checkString"), undefined, [
-      accessorFromPath(path),
-      identifierFromPath(path)
-    ])
-  );
-}
-
-function createCheckBooleanCall(
-  path: string[],
-  rvLib: ts.Identifier
-): ts.ExpressionStatement {
-  return ts.createExpressionStatement(
-    ts.createCall(ts.createPropertyAccess(rvLib, "checkBoolean"), undefined, [
-      accessorFromPath(path),
-      identifierFromPath(path)
-    ])
-  );
-}
-
-function createCheckNumberLiteralCall(
-  path: string[],
-  expected: number,
-  rvLib: ts.Identifier
-) {
-  return ts.createExpressionStatement(
-    ts.createCall(
-      ts.createPropertyAccess(rvLib, "checkNumberLiteral"),
-      undefined,
-      [
-        accessorFromPath(path),
-        identifierFromPath(path),
-        ts.createNumericLiteral(`${expected}`)
-      ]
-    )
-  );
-}
-
-function createCheckBooleanLiteralCall(
-  path: string[],
-  expected: boolean,
-  rvLib: ts.Identifier
-) {
-  return ts.createExpressionStatement(
-    ts.createCall(
-      ts.createPropertyAccess(rvLib, "checkBooleanLiteral"),
-      undefined,
-      [
-        accessorFromPath(path),
-        identifierFromPath(path),
-        expected ? ts.createTrue() : ts.createFalse()
-      ]
-    )
-  );
-}
-
-function createCheckStringLiteralCall(
-  path: string[],
-  expected: string,
-  rvLib: ts.Identifier
-) {
-  return ts.createExpressionStatement(
-    ts.createCall(
-      ts.createPropertyAccess(rvLib, "checkStringLiteral"),
-      undefined,
-      [
-        accessorFromPath(path),
-        identifierFromPath(path),
-        ts.createStringLiteral(expected)
-      ]
-    )
-  );
-}
-
-function createCheckInterfaceCall(
-  checks: ts.ExpressionStatement[],
-  path: string[],
-  rvLib: ts.Identifier
-): ts.ExpressionStatement {
-  return ts.createExpressionStatement(
-    ts.createCall(ts.createPropertyAccess(rvLib, "checkInterface"), undefined, [
-      ts.createArrayLiteral(
-        checks.map(statement => statement.expression),
-        true
-      ),
-      identifierFromPath(path)
-    ])
-  );
-}
-
-function createCheckArrayCall(
-  path: string[],
-  rvLib: ts.Identifier,
-  itemCheck?: ts.ArrowFunction
-): ts.ExpressionStatement {
-  const requiredArgs = [accessorFromPath(path), identifierFromPath(path)];
-  const args = itemCheck ? [...requiredArgs, itemCheck] : requiredArgs;
-  return ts.createExpressionStatement(
-    ts.createCall(ts.createPropertyAccess(rvLib, "checkArray"), undefined, args)
-  );
-}
-
-function createItemCheckArrowFunction(expression: ts.ExpressionStatement) {
-  return ts.createArrowFunction(
-    undefined,
-    undefined,
-    [
-      ts.createParameter(undefined, undefined, undefined, "item"),
-      ts.createParameter(undefined, undefined, undefined, "index")
-    ],
-    undefined,
-    undefined,
-    expression.expression
-  );
-}
-
-function createCheckUnionCall(
-  checks: ts.ExpressionStatement[],
-  path: string[],
-  rvLib: ts.Identifier
-): ts.ExpressionStatement {
-  return ts.createExpressionStatement(
-    ts.createCall(ts.createPropertyAccess(rvLib, "checkUnion"), undefined, [
-      ts.createArrayLiteral(
-        checks.map(statement => statement.expression),
-        true
-      ),
-      identifierFromPath(path)
-    ])
-  );
-}
-
-function createCheckOptionalCall(
-  check: ts.ExpressionStatement,
-  path: string[],
-  rvLib: ts.Identifier
-) {
-  const onDefinedLamda = ts.createArrowFunction(
-    [],
-    [],
-    [],
-    undefined,
-    undefined,
-    check.expression
-  );
-  return ts.createExpressionStatement(
-    ts.createCall(ts.createPropertyAccess(rvLib, "checkOptional"), undefined, [
-      accessorFromPath(path),
-      onDefinedLamda
-    ])
-  );
-}
-
-function createAssertTypeCall(
-  expression: ts.Expression,
-  checks: ts.ExpressionStatement[],
-  rvLib: ts.Identifier
-): ts.ExpressionStatement {
-  return ts.createExpressionStatement(
-    ts.createCall(ts.createPropertyAccess(rvLib, "assertType"), undefined, [
-      expression,
-      ts.createArrayLiteral(checks.map(statement => statement.expression), true)
-    ])
-  );
-}
-
-function isExpressionStatement(
-  candidate: ts.ExpressionStatement | null
-): candidate is ts.ExpressionStatement {
-  return !!candidate;
-}
-
 function isOptional(type: ts.Type) {
   return (
     type.getFlags() & ts.TypeFlags.Undefined ||
@@ -241,23 +48,102 @@ function isIdType(type: ts.Type): type is IdType {
   return Boolean((type as IdType).id);
 }
 
-function createCheckCallsForType(
+function createNumValueCall(
+  rvLib: ts.Identifier,
+  value: number
+): ts.Expression {
+  return ts.createCall(ts.createPropertyAccess(rvLib, "value"), undefined, [
+    ts.createNumericLiteral(`${value}`)
+  ]);
+}
+
+function createStringValueCall(
+  rvLib: ts.Identifier,
+  value: string
+): ts.Expression {
+  return ts.createCall(ts.createPropertyAccess(rvLib, "value"), undefined, [
+    ts.createStringLiteral(`${value}`)
+  ]);
+}
+
+function createBooleanValueCall(
+  rvLib: ts.Identifier,
+  value: boolean
+): ts.Expression {
+  return ts.createCall(ts.createPropertyAccess(rvLib, "value"), undefined, [
+    value ? ts.createTrue() : ts.createFalse()
+  ]);
+}
+
+function createArrayCall(
+  rvLib: ts.Identifier,
+  delegate: ts.Expression
+): ts.Expression {
+  return ts.createCall(ts.createPropertyAccess(rvLib, "array"), undefined, [
+    delegate
+  ]);
+}
+
+function createUnionCall(
+  rvLib: ts.Identifier,
+  delegates: ts.Expression[]
+): ts.Expression {
+  return ts.createCall(
+    ts.createPropertyAccess(rvLib, "or"),
+    undefined,
+    delegates
+  );
+}
+
+function createPropsCall(
+  rvLib: ts.Identifier,
+  props: ts.Expression[]
+): ts.Expression {
+  return ts.createCall(
+    ts.createPropertyAccess(rvLib, "props"),
+    undefined,
+    props
+  );
+}
+
+function createProviderCall(id: number): ts.Expression {
+  return ts.createCall(ts.createIdentifier("provider"), undefined, [
+    ts.createStringLiteral(`${id}`)
+  ]);
+}
+
+function createIndexCall(id: number, validator: ts.Expression): ts.Expression {
+  return ts.createCall(ts.createIdentifier("index"), undefined, [
+    ts.createStringLiteral(`${id}`),
+    validator
+  ]);
+}
+
+function createValueGetter(propName: string): ts.Expression {
+  return ts.createArrowFunction(
+    [],
+    [],
+    [ts.createParameter(undefined, undefined, undefined, "v")],
+    undefined,
+    undefined,
+    ts.createPropertyAccess(ts.createIdentifier("v"), propName)
+  );
+}
+
+function isNotNull<T>(value: T | null): value is T {
+  return value !== null;
+}
+
+function createValidatorExpression(
   typeChecker: ts.TypeChecker,
   rvLib: ts.Identifier,
-  accessor: string[],
   types: Set<number>,
   type?: ts.Type
-): ts.ExpressionStatement | null {
-  const references = new Map<string, ts.Type>();
+): ts.Expression | null {
   if (!type) {
     return null;
   }
-  if (isIdType(type)) {
-    if (types.has(type.id)) {
-      return null;
-    }
-    types.add(type.id);
-  }
+  const references = new Map<string, ts.Type>();
   if (isTypeReference(type) && type.target.typeParameters) {
     type.target.typeParameters.forEach((typeParameter, index) => {
       const typeArguments = type.typeArguments;
@@ -271,110 +157,128 @@ function createCheckCallsForType(
     });
   }
   if (type.getFlags() & ts.TypeFlags.Number) {
-    return createCheckNumCall(accessor, rvLib);
+    return ts.createPropertyAccess(rvLib, "num");
   }
   if (type.getFlags() & ts.TypeFlags.String) {
-    return createCheckStringCall(accessor, rvLib);
+    return ts.createPropertyAccess(rvLib, "str");
   }
   if (type.getFlags() & ts.TypeFlags.Boolean) {
-    return createCheckBooleanCall(accessor, rvLib);
+    return ts.createPropertyAccess(rvLib, "bool");
   }
   if (isNumberLiteral(type)) {
-    return createCheckNumberLiteralCall(accessor, type.value, rvLib);
+    return createNumValueCall(rvLib, type.value);
   }
   if (isStringLiteral(type)) {
-    return createCheckStringLiteralCall(accessor, type.value, rvLib);
+    return createStringValueCall(rvLib, type.value);
   }
   if (isBooleanLitral(type)) {
-    return createCheckBooleanLiteralCall(
-      accessor,
-      type.intrinsicName === "true",
-      rvLib
-    );
+    return createBooleanValueCall(rvLib, type.intrinsicName === "true");
   }
   if (isArrayType(type)) {
     const itemCheck =
       isTypeReference(type) &&
       type.typeArguments &&
       type.typeArguments.length === 1 &&
-      createCheckCallsForType(
+      createValidatorExpression(
         typeChecker,
         rvLib,
-        ["item"],
         types,
         type.typeArguments[0]
       );
     if (itemCheck) {
-      const checkArrowFunction = createItemCheckArrowFunction(itemCheck);
-      return createCheckArrayCall(accessor, rvLib, checkArrowFunction);
+      return createArrayCall(rvLib, itemCheck);
     } else {
-      return createCheckArrayCall(accessor, rvLib);
+      return null;
     }
   }
   if (type.isUnion()) {
-    const typesExceptOptional = type.types.filter(type => !isOptional(type));
-    if (type.types.length > typesExceptOptional.length) {
-      if (typesExceptOptional.length === 1) {
-        const checkCall = createCheckCallsForType(
-          typeChecker,
-          rvLib,
-          accessor,
-          types,
-          typesExceptOptional[0]
-        );
-        return isExpressionStatement(checkCall)
-          ? createCheckOptionalCall(checkCall, accessor, rvLib)
-          : null;
+    const typesWithOptionalsFirst = type.types.slice();
+    typesWithOptionalsFirst.sort((t1, t2) => {
+      if (isOptional(t1) && !isOptional(t2)) {
+        return -1;
       }
-      const checkUnionCall = createCheckUnionCall(
-        typesExceptOptional
-          .map(type =>
-            createCheckCallsForType(typeChecker, rvLib, accessor, types, type)
-          )
-          .filter(isExpressionStatement),
-        accessor,
-        rvLib
-      );
-      return createCheckOptionalCall(checkUnionCall, accessor, rvLib);
-    }
-    return createCheckUnionCall(
-      type.types
-        .map(type =>
-          createCheckCallsForType(typeChecker, rvLib, accessor, types, type)
-        )
-        .filter(isExpressionStatement),
-      accessor,
-      rvLib
+      if (!isOptional(t1) && isOptional(t2)) {
+        return 1;
+      }
+      return 0;
+    });
+    const validators = typesWithOptionalsFirst.map(type =>
+      createValidatorExpression(typeChecker, rvLib, types, type)
     );
+    return createUnionCall(rvLib, validators.filter(isNotNull));
   }
   if (type.isClassOrInterface() || type.getFlags() & ts.TypeFlags.Object) {
     const props = typeChecker.getPropertiesOfType(type);
-    const interfaceChecks = props
-      .map(prop => {
-        const declaration = prop.declarations[0];
-        if (declaration && ts.isPropertySignature(declaration)) {
-          let propType = typeChecker.getTypeAtLocation(declaration);
-          if (propType.isTypeParameter()) {
-            const symbol = propType.getSymbol();
-            if (symbol && references.has(symbol.getName())) {
-              propType = references.get(symbol.getName())!;
+    const createPropDefinitions = () => {
+      return props
+        .map(prop => {
+          const declaration = prop.declarations[0];
+          if (declaration && ts.isPropertySignature(declaration)) {
+            let propType = typeChecker.getTypeAtLocation(declaration);
+            if (propType.isTypeParameter()) {
+              const symbol = propType.getSymbol();
+              if (symbol && references.has(symbol.getName())) {
+                propType = references.get(symbol.getName())!;
+              }
             }
+            const validator = createValidatorExpression(
+              typeChecker,
+              rvLib,
+              types,
+              propType
+            );
+            if (validator === null) {
+              return null;
+            }
+            return ts.createArrayLiteral([
+              ts.createStringLiteral(prop.getName()),
+              createValueGetter(prop.getName()),
+              validator
+            ]);
           }
-          return createCheckCallsForType(
-            typeChecker,
-            rvLib,
-            accessor.concat(prop.getName()),
-            types,
-            propType
-          );
-        }
-        return null;
-      })
-      .filter(isExpressionStatement);
-
-    return createCheckInterfaceCall(interfaceChecks, accessor, rvLib);
+          return null;
+        })
+        .filter(isNotNull);
+    };
+    if (isIdType(type)) {
+      if (types.has(type.id)) {
+        return createProviderCall(type.id);
+      }
+      types.add(type.id);
+      return createIndexCall(
+        type.id,
+        createPropsCall(rvLib, createPropDefinitions())
+      );
+    }
+    return createPropsCall(rvLib, createPropDefinitions());
   }
   return null;
+}
+
+function createAssertValidTypeCall(
+  rvLib: ts.Identifier,
+  validator: ts.Expression,
+  value: ts.Expression
+): ts.Expression {
+  return ts.createCall(
+    ts.createPropertyAccess(rvLib, "assertValidType"),
+    undefined,
+    [
+      ts.createStringLiteral(value.getText()),
+      value,
+      ts.createArrowFunction(
+        undefined,
+        undefined,
+        [
+          ts.createParameter(undefined, undefined, undefined, "index"),
+          ts.createParameter(undefined, undefined, undefined, "provider")
+        ],
+        undefined,
+        undefined,
+        validator
+      )
+    ]
+  );
 }
 
 export function createVisitor(typeChecker: ts.TypeChecker) {
@@ -391,20 +295,17 @@ export function createVisitor(typeChecker: ts.TypeChecker) {
         placeholderFunctionName &&
         node.expression.getText() === placeholderFunctionName
       ) {
-        const assertCalls = node.arguments
-          .map(argument => {
-            libNeeded = true;
-            return createCheckCallsForType(
-              typeChecker,
-              rvlib,
-              [argument.getText()],
-              new Set(),
-              typeChecker.getTypeAtLocation(argument)
-            );
-          })
-          .filter(isExpressionStatement);
-        return createAssertTypeCall(ts.createNull(), assertCalls, rvlib)
-          .expression;
+        const validator = createValidatorExpression(
+          typeChecker,
+          rvlib,
+          new Set(),
+          typeChecker.getTypeAtLocation(node.arguments[0])
+        );
+        if (validator === null) {
+          return node.expression;
+        }
+        libNeeded = true;
+        return createAssertValidTypeCall(rvlib, validator, node.arguments[0]);
       } else if (
         ts.isImportDeclaration(node) &&
         ts.isStringLiteral(node.moduleSpecifier) &&

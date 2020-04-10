@@ -16,6 +16,16 @@ interface Circular {
   arr: Circular[];
 }
 
+interface Pong {
+  o: 1;
+  ping?: Ping;
+}
+
+interface Ping {
+  i: 1;
+  pong: Pong;
+}
+
 describe("validator", () => {
   it("should allow circular types", () => {
     const validValue: Circular = {
@@ -26,6 +36,13 @@ describe("validator", () => {
         arr: []
       },
       arr: [{ a: "c", child: null, arr: [] }]
+    };
+
+    const ping: Ping = {
+      i: 1,
+      pong: {
+        o: 1
+      }
     };
 
     const invalidValue = {
