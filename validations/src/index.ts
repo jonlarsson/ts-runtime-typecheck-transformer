@@ -1,19 +1,4 @@
 export {
-  assertType,
-  checkBoolean,
-  checkInterface,
-  checkNumber,
-  checkOptional,
-  checkString,
-  checkUnion,
-  checkArray,
-  checkBooleanLiteral,
-  checkNumberLiteral,
-  checkStringLiteral,
-  TypeCheckFailedError
-} from "./validations";
-
-export {
   array,
   createValidator,
   or,
@@ -23,7 +8,11 @@ export {
   num,
   bool,
   value,
-  assertValidType
+  assertValidType,
+  any,
+  nullValue,
+  undefinedValue,
+  TypeCheckFailedError
 } from "./validator";
 
-export function runtimeTypecheck(...variable: any): void {}
+export function runtimeTypecheck(variable: any): void {}

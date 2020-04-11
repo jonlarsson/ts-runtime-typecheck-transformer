@@ -37,8 +37,8 @@ function unsafeCall(): any {
   return {};
 }
 
-const a: Pong = unsafeCall();
-runtimeTypecheck(a);
+const a: number | null = unsafeCall();
+const actual = () => runtimeTypecheck(a);
 // const ape: NumStr = unsafeCall();
 //
 // runtimeTypecheck(ape);

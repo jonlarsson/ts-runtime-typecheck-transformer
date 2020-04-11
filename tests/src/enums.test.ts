@@ -50,8 +50,8 @@ describe("enums", () => {
 
       const actual = () => runtimeTypecheck(str);
 
-      expectToThrowRuntimeTypecheckError(actual, "str", "'a'", "'c'");
-      expectToThrowRuntimeTypecheckError(actual, "str", "'b'", "'c'");
+      expectToThrowRuntimeTypecheckError(actual, "str", "a", "c");
+      expectToThrowRuntimeTypecheckError(actual, "str", "b", "c");
     });
 
     it("should not allow a value that is not the correct type", () => {
@@ -60,7 +60,7 @@ describe("enums", () => {
 
       const actual = () => runtimeTypecheck(str);
 
-      expectToThrowRuntimeTypecheckError(actual, "str", "string", "number");
+      expectToThrowRuntimeTypecheckError(actual, "str", "a", "1");
     });
 
     it("should allow a string that is a member of the enum", () => {

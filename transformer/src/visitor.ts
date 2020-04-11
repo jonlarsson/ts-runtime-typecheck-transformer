@@ -165,6 +165,12 @@ function createValidatorExpression(
   if (type.getFlags() & ts.TypeFlags.Boolean) {
     return ts.createPropertyAccess(rvLib, "bool");
   }
+  if (type.getFlags() & ts.TypeFlags.Null) {
+    return ts.createPropertyAccess(rvLib, "nullValue");
+  }
+  if (type.getFlags() & ts.TypeFlags.Undefined) {
+    return ts.createPropertyAccess(rvLib, "undefinedValue");
+  }
   if (isNumberLiteral(type)) {
     return createNumValueCall(rvLib, type.value);
   }
@@ -188,7 +194,7 @@ function createValidatorExpression(
     if (itemCheck) {
       return createArrayCall(rvLib, itemCheck);
     } else {
-      return null;
+      return createArrayCall(rvLib, ts.createPropertyAccess(rvLib, "any"));
     }
   }
   if (type.isUnion()) {

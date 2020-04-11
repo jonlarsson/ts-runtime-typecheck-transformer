@@ -1,4 +1,4 @@
-import { TypeCheckFailedError } from "./validations";
+export class TypeCheckFailedError extends Error {}
 
 enum ValidationType {
   Type,
@@ -159,9 +159,16 @@ export function isInvalidResult(
   return !validationResult.valid;
 }
 
+function typeAsString(value: unknown) {
+  if (value === null) {
+    return "null";
+  }
+  return typeof value;
+}
+
 function typeValidator(expectedType: string): Validator {
   return function validateType(value: unknown): ValidationResult {
-    const type = typeof value;
+    const type = typeAsString(value);
     if (type === expectedType) {
       return { valid: true };
     }
@@ -174,28 +181,28 @@ function typeValidator(expectedType: string): Validator {
   };
 }
 
+export const any: Validator = () => ({ valid: true });
+
 export const num = typeValidator("number");
 
 export const bool = typeValidator("boolean");
 
 export const str = typeValidator("string");
 
-const objectTypeValidator = (value: unknown): ValidationResult => {
-  if (value === null) {
-    return {
-      validationType: ValidationType.Type,
-      valid: false,
-      actual: "null",
-      expected: "object"
-    };
-  }
-  return typeValidator("object")(value);
-};
+const objectTypeValidator = typeValidator("object");
 
 export function value(expectedValue: unknown): Validator {
   return function validateValue(actualValue: unknown): ValidationResult {
     if (Object.is(expectedValue, actualValue)) {
       return { valid: true };
+    }
+    if (expectedValue == actualValue) {
+      return {
+        validationType: ValidationType.Value,
+        valid: false,
+        expectedValue: `${expectedValue}(${typeof expectedValue})`,
+        actualValue: `${actualValue}(${typeof actualValue})`
+      };
     }
     return {
       validationType: ValidationType.Value,
@@ -205,6 +212,10 @@ export function value(expectedValue: unknown): Validator {
     };
   };
 }
+
+export const nullValue = value(null);
+
+export const undefinedValue = value(undefined);
 
 export function propertyValidator([
   name,
@@ -323,16 +334,16 @@ function describeInvalidResult(
 ): string[] {
   if (isInvalidType(result)) {
     return [
-      `${joinPath(path)}: expected type "${result.expected}" but was ${
+      `${joinPath(path)}: expected type ${result.expected} but was ${
         result.actual
       }`
     ];
   }
   if (isInvalidValue(result)) {
     return [
-      `${joinPath(path)}: expected value "${
+      `${joinPath(path)}: expected value ${
         result.expectedValue
-      }" but was ${describeValue(result.actualValue)}`
+      } but was ${describeValue(result.actualValue)}`
     ];
   }
   if (isInvalidProperties(result)) {
