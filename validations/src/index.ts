@@ -9,10 +9,17 @@ export {
   bool,
   value,
   assertValidType,
+  isType,
   any,
   nullValue,
   undefinedValue,
-  TypeCheckFailedError
+  RuntimeAssertTypeError,
 } from "./validator";
 
-export function runtimeTypecheck(variable: any): void {}
+export function runtimeIsType<T>(variable: any): variable is T {
+  throw new Error("Transformer was not used when compiling");
+}
+
+export function runtimeAssertType<T>(variable: any): asserts variable is T {
+  throw new Error("Transformer was not used when compiling");
+}

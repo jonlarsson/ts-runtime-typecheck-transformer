@@ -1,7 +1,7 @@
 import { expect } from "chai";
-import { TypeCheckFailedError } from "@ts-rtc/validations";
+import { RuntimeAssertTypeError } from "@ts-rtc/validations";
 
-export function expectToThrowRuntimeTypecheckError(
+export function expectToThrowRuntimeAssertTypeError(
   closure: () => void,
   accessor: string,
   expected: string,
@@ -12,7 +12,7 @@ export function expectToThrowRuntimeTypecheckError(
     closure();
   } catch (error) {
     console.log(error.message);
-    expect(error).to.be.instanceOf(TypeCheckFailedError);
+    expect(error).to.be.instanceOf(RuntimeAssertTypeError);
     expect(error.message).to.contain(accessor);
     expect(error.message).to.contain(expected);
     expect(error.message).to.contain(actual);

@@ -1,20 +1,20 @@
 import { expect } from "chai";
-import { runtimeTypecheck } from "@ts-rtc/validations";
-import { expectToThrowRuntimeTypecheckError } from "./expectToThrowRuntimeTypecheckError";
+import { runtimeAssertType } from "@ts-rtc/validations";
+import { expectToThrowRuntimeAssertTypeError } from "./expectToThrowRuntimeAssertTypeError";
 
 describe("primitives", () => {
   describe("number", () => {
     it("should fail if the parameter is a string", () => {
       // @ts-ignore
       const a: number = "1";
-      const actual = () => runtimeTypecheck(a);
+      const actual = () => runtimeAssertType(a);
 
-      expectToThrowRuntimeTypecheckError(actual, "a", "number", "string");
+      expectToThrowRuntimeAssertTypeError(actual, "a", "number", "string");
     });
 
     it("should not fail if the parameter is a number", () => {
       const a: number = 1;
-      const actual = () => runtimeTypecheck(a);
+      const actual = () => runtimeAssertType(a);
 
       expect(actual).not.to.throw();
     });
@@ -24,14 +24,14 @@ describe("primitives", () => {
     it("should fail if the parameter is a string", () => {
       // @ts-ignore
       const a: boolean = "true";
-      const actual = () => runtimeTypecheck(a);
+      const actual = () => runtimeAssertType(a);
 
-      expectToThrowRuntimeTypecheckError(actual, "a", "boolean", "string");
+      expectToThrowRuntimeAssertTypeError(actual, "a", "boolean", "string");
     });
 
     it("should not fail if the parameter is a boolean", () => {
       const a: boolean = true;
-      const actual = () => runtimeTypecheck(a);
+      const actual = () => runtimeAssertType(a);
 
       expect(actual).not.to.throw();
     });
@@ -41,14 +41,14 @@ describe("primitives", () => {
     it("should fail if the parameter is a number", () => {
       // @ts-ignore
       const a: string = 1;
-      const actual = () => runtimeTypecheck(a);
+      const actual = () => runtimeAssertType(a);
 
-      expectToThrowRuntimeTypecheckError(actual, "a", "string", "number");
+      expectToThrowRuntimeAssertTypeError(actual, "a", "string", "number");
     });
 
     it("should not fail if the parameter is a string", () => {
       const a: string = "an actual string";
-      const actual = () => runtimeTypecheck(a);
+      const actual = () => runtimeAssertType(a);
 
       expect(actual).not.to.throw();
     });

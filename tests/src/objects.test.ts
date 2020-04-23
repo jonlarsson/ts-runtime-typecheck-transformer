@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { runtimeTypecheck } from "@ts-rtc/validations";
-import { expectToThrowRuntimeTypecheckError } from "./expectToThrowRuntimeTypecheckError";
+import { runtimeAssertType } from "@ts-rtc/validations";
+import { expectToThrowRuntimeAssertTypeError } from "./expectToThrowRuntimeAssertTypeError";
 
 describe("interfaces", () => {
   it("should fail if a boolean property is a number", () => {
@@ -11,9 +11,9 @@ describe("interfaces", () => {
     // @ts-ignore
     const obj: Obj = { a: 1, b: 2 };
 
-    const actual = () => runtimeTypecheck(obj);
+    const actual = () => runtimeAssertType(obj);
 
-    expectToThrowRuntimeTypecheckError(actual, "obj.a", "boolean", "number");
+    expectToThrowRuntimeAssertTypeError(actual, "obj.a", "boolean", "number");
   });
 
   it("should not fail on correct property type", () => {
@@ -23,7 +23,7 @@ describe("interfaces", () => {
     }
     const obj: Obj = { a: true, b: 2 };
 
-    const actual = () => runtimeTypecheck(obj);
+    const actual = () => runtimeAssertType(obj);
 
     expect(actual).not.to.throw();
   });
@@ -38,9 +38,9 @@ describe("interfaces", () => {
     //@ts-ignore
     const obj: Obj = { nested: { a: "true" } };
 
-    const actual = () => runtimeTypecheck(obj);
+    const actual = () => runtimeAssertType(obj);
 
-    expectToThrowRuntimeTypecheckError(
+    expectToThrowRuntimeAssertTypeError(
       actual,
       "obj.nested.a",
       "boolean",

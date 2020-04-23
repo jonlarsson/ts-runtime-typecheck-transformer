@@ -1,21 +1,21 @@
 import { expect } from "chai";
-import { runtimeTypecheck } from "@ts-rtc/validations";
-import { expectToThrowRuntimeTypecheckError } from "./expectToThrowRuntimeTypecheckError";
+import { runtimeAssertType } from "@ts-rtc/validations";
+import { expectToThrowRuntimeAssertTypeError } from "./expectToThrowRuntimeAssertTypeError";
 
 describe("arrays", () => {
   it("should not allow an object that is not an array", () => {
     //@ts-ignore
     const obj: number[] = {};
 
-    const actual = () => runtimeTypecheck(obj);
+    const actual = () => runtimeAssertType(obj);
 
-    expectToThrowRuntimeTypecheckError(actual, "obj", "Array", "object");
+    expectToThrowRuntimeAssertTypeError(actual, "obj", "Array", "object");
   });
 
   it("should allow an empty array", () => {
     const array: number[] = [];
 
-    const actual = () => runtimeTypecheck(array);
+    const actual = () => runtimeAssertType(array);
 
     expect(actual).not.to.throw();
   });
@@ -24,15 +24,20 @@ describe("arrays", () => {
     //@ts-ignore
     const array: number[] = [false];
 
-    const actual = () => runtimeTypecheck(array);
+    const actual = () => runtimeAssertType(array);
 
-    expectToThrowRuntimeTypecheckError(actual, "array[0]", "number", "boolean");
+    expectToThrowRuntimeAssertTypeError(
+      actual,
+      "array[0]",
+      "number",
+      "boolean"
+    );
   });
 
   it("should allow arrays with any items", () => {
     const array: [] = [];
 
-    const actual = () => runtimeTypecheck(array);
+    const actual = () => runtimeAssertType(array);
 
     expect(actual).not.to.throw();
   });
@@ -41,9 +46,9 @@ describe("arrays", () => {
     //@ts-ignore
     const array: { num: number }[] = [{ num: 1 }, { num: false }];
 
-    const actual = () => runtimeTypecheck(array);
+    const actual = () => runtimeAssertType(array);
 
-    expectToThrowRuntimeTypecheckError(
+    expectToThrowRuntimeAssertTypeError(
       actual,
       "array[1].num",
       "number",

@@ -1,12 +1,12 @@
 import { expect } from "chai";
-import { runtimeTypecheck } from "@ts-rtc/validations";
-import { expectToThrowRuntimeTypecheckError } from "./expectToThrowRuntimeTypecheckError";
+import { runtimeAssertType } from "@ts-rtc/validations";
+import { expectToThrowRuntimeAssertTypeError } from "./expectToThrowRuntimeAssertTypeError";
 
 describe("optionals", () => {
   it("should allow an optional primitive to be null", () => {
     const optional: number | null = null;
 
-    const actual = () => runtimeTypecheck(optional);
+    const actual = () => runtimeAssertType(optional);
 
     expect(actual).not.to.throw();
   });
@@ -14,7 +14,7 @@ describe("optionals", () => {
   it("should allow an optional primitive to be undefined", () => {
     const optional: string | undefined = undefined;
 
-    const actual = () => runtimeTypecheck(optional);
+    const actual = () => runtimeAssertType(optional);
 
     expect(actual).not.to.throw();
   });
@@ -23,18 +23,18 @@ describe("optionals", () => {
     //@ts-ignore
     const optional: string | undefined = 1;
 
-    const actual = () => runtimeTypecheck(optional);
+    const actual = () => runtimeAssertType(optional);
 
-    expectToThrowRuntimeTypecheckError(actual, "optional", "string", "number");
+    expectToThrowRuntimeAssertTypeError(actual, "optional", "string", "number");
   });
 
   it("should not allow a non optional primitive to be null", () => {
     // @ts-ignore
     const nonOptional: boolean = null;
 
-    const actual = () => runtimeTypecheck(nonOptional);
+    const actual = () => runtimeAssertType(nonOptional);
 
-    expectToThrowRuntimeTypecheckError(
+    expectToThrowRuntimeAssertTypeError(
       actual,
       "nonOptional",
       "boolean",
@@ -46,9 +46,9 @@ describe("optionals", () => {
     // @ts-ignore
     const nonOptional: boolean = undefined;
 
-    const actual = () => runtimeTypecheck(nonOptional);
+    const actual = () => runtimeAssertType(nonOptional);
 
-    expectToThrowRuntimeTypecheckError(
+    expectToThrowRuntimeAssertTypeError(
       actual,
       "nonOptional",
       "boolean",
@@ -59,7 +59,7 @@ describe("optionals", () => {
   it("should allow an optional property to be undefined", () => {
     const obj: { a?: number } = {};
 
-    const actual = () => runtimeTypecheck(obj);
+    const actual = () => runtimeAssertType(obj);
 
     expect(actual).not.to.throw();
   });
@@ -68,17 +68,17 @@ describe("optionals", () => {
     //@ts-ignore
     const obj: { a?: number } = { a: true };
 
-    const actual = () => runtimeTypecheck(obj);
+    const actual = () => runtimeAssertType(obj);
 
-    expectToThrowRuntimeTypecheckError(actual, "obj.a", "number", "boolean");
+    expectToThrowRuntimeAssertTypeError(actual, "obj.a", "number", "boolean");
   });
 
   it("should not allow a non optional property to be undefined", () => {
     //@ts-ignore
     const obj: { a: number } = {};
 
-    const actual = () => runtimeTypecheck(obj);
+    const actual = () => runtimeAssertType(obj);
 
-    expectToThrowRuntimeTypecheckError(actual, "obj.a", "number", "undefined");
+    expectToThrowRuntimeAssertTypeError(actual, "obj.a", "number", "undefined");
   });
 });

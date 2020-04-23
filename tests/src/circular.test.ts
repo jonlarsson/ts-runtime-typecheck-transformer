@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { runtimeTypecheck } from "@ts-rtc/validations";
-import { expectToThrowRuntimeTypecheckError } from "./expectToThrowRuntimeTypecheckError";
+import { runtimeAssertType } from "@ts-rtc/validations";
+import { expectToThrowRuntimeAssertTypeError } from "./expectToThrowRuntimeAssertTypeError";
 
 describe("circular", () => {
   interface Pong {
@@ -15,10 +15,10 @@ describe("circular", () => {
   it("should allow circular type references", () => {
     const pong: Pong = {
       type: "pong",
-      ping: { type: "ping" }
+      ping: { type: "ping" },
     };
 
-    const actual = () => runtimeTypecheck(pong);
+    const actual = () => runtimeAssertType(pong);
 
     expect(actual).not.to.throw();
   });
@@ -28,17 +28,17 @@ describe("circular", () => {
       type: "pong",
       ping: {
         type: "ping",
-        // @ts-ignore
         pong: {
           type: "pong",
-          ping: { type: "pang" }
-        }
-      }
+          // @ts-ignore
+          ping: { type: "pang" },
+        },
+      },
     };
 
-    const actual = () => runtimeTypecheck(pong);
+    const actual = () => runtimeAssertType(pong);
 
-    expectToThrowRuntimeTypecheckError(
+    expectToThrowRuntimeAssertTypeError(
       actual,
       "pong.ping.pong.ping.type",
       "ping",

@@ -53,7 +53,7 @@ function createNumValueCall(
   value: number
 ): ts.Expression {
   return ts.createCall(ts.createPropertyAccess(rvLib, "value"), undefined, [
-    ts.createNumericLiteral(`${value}`)
+    ts.createNumericLiteral(`${value}`),
   ]);
 }
 
@@ -62,7 +62,7 @@ function createStringValueCall(
   value: string
 ): ts.Expression {
   return ts.createCall(ts.createPropertyAccess(rvLib, "value"), undefined, [
-    ts.createStringLiteral(`${value}`)
+    ts.createStringLiteral(`${value}`),
   ]);
 }
 
@@ -71,7 +71,7 @@ function createBooleanValueCall(
   value: boolean
 ): ts.Expression {
   return ts.createCall(ts.createPropertyAccess(rvLib, "value"), undefined, [
-    value ? ts.createTrue() : ts.createFalse()
+    value ? ts.createTrue() : ts.createFalse(),
   ]);
 }
 
@@ -80,7 +80,7 @@ function createArrayCall(
   delegate: ts.Expression
 ): ts.Expression {
   return ts.createCall(ts.createPropertyAccess(rvLib, "array"), undefined, [
-    delegate
+    delegate,
   ]);
 }
 
@@ -108,14 +108,14 @@ function createPropsCall(
 
 function createProviderCall(id: number): ts.Expression {
   return ts.createCall(ts.createIdentifier("provider"), undefined, [
-    ts.createStringLiteral(`${id}`)
+    ts.createStringLiteral(`${id}`),
   ]);
 }
 
 function createIndexCall(id: number, validator: ts.Expression): ts.Expression {
   return ts.createCall(ts.createIdentifier("index"), undefined, [
     ts.createStringLiteral(`${id}`),
-    validator
+    validator,
   ]);
 }
 
@@ -208,7 +208,7 @@ function createValidatorExpression(
       }
       return 0;
     });
-    const validators = typesWithOptionalsFirst.map(type =>
+    const validators = typesWithOptionalsFirst.map((type) =>
       createValidatorExpression(typeChecker, rvLib, types, type)
     );
     return createUnionCall(rvLib, validators.filter(isNotNull));
@@ -217,7 +217,7 @@ function createValidatorExpression(
     const props = typeChecker.getPropertiesOfType(type);
     const createPropDefinitions = () => {
       return props
-        .map(prop => {
+        .map((prop) => {
           const declaration = prop.declarations[0];
           if (declaration && ts.isPropertySignature(declaration)) {
             let propType = typeChecker.getTypeAtLocation(declaration);
@@ -239,7 +239,7 @@ function createValidatorExpression(
             return ts.createArrayLiteral([
               ts.createStringLiteral(prop.getName()),
               createValueGetter(prop.getName()),
-              validator
+              validator,
             ]);
           }
           return null;
@@ -277,41 +277,94 @@ function createAssertValidTypeCall(
         undefined,
         [
           ts.createParameter(undefined, undefined, undefined, "index"),
-          ts.createParameter(undefined, undefined, undefined, "provider")
+          ts.createParameter(undefined, undefined, undefined, "provider"),
         ],
         undefined,
         undefined,
         validator
-      )
+      ),
     ]
   );
 }
 
+function createIsTypeCall(
+  rvLib: ts.Identifier,
+  validator: ts.Expression,
+  value: ts.Expression
+) {
+  return ts.createCall(ts.createPropertyAccess(rvLib, "isType"), undefined, [
+    value,
+    ts.createArrowFunction(
+      undefined,
+      undefined,
+      [
+        ts.createParameter(undefined, undefined, undefined, "index"),
+        ts.createParameter(undefined, undefined, undefined, "provider"),
+      ],
+      undefined,
+      undefined,
+      validator
+    ),
+  ]);
+}
+
+function bindingMatcher(
+  name: string
+): (binding: ts.ImportSpecifier) => boolean {
+  return (binding) =>
+    binding.propertyName
+      ? binding.propertyName.getText() === name
+      : binding.name.getText() === name;
+}
+
 export function createVisitor(typeChecker: ts.TypeChecker) {
-  function visitor(ctx: ts.TransformationContext, sf: ts.SourceFile) {
-    let libNeeded = false;
+  function visitor(ctx: ts.TransformationContext) {
     const rvlib = ts.createFileLevelUniqueName("rvlib");
-    let placeholderFunctionName: string | null = null;
+    let runtimeAssertFunctionName: string | null = null;
+    let runtimeIsFunctionName: string | null = null;
     const visitor: ts.Visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
       // here we can check each node and potentially return
       // new nodes if we want to leave the node as is, and
       // continue searching through child nodes:
       if (
         ts.isCallExpression(node) &&
-        placeholderFunctionName &&
-        node.expression.getText() === placeholderFunctionName
+        runtimeAssertFunctionName &&
+        node.expression.getText() === runtimeAssertFunctionName
       ) {
+        let type: ts.Type;
+        if (!node.typeArguments || node.typeArguments.length !== 1) {
+          type = typeChecker.getTypeAtLocation(node.arguments[0]);
+        } else {
+          type = typeChecker.getTypeAtLocation(node.typeArguments[0]);
+        }
         const validator = createValidatorExpression(
           typeChecker,
           rvlib,
           new Set(),
-          typeChecker.getTypeAtLocation(node.arguments[0])
+          type
         );
         if (validator === null) {
           return node.expression;
         }
-        libNeeded = true;
         return createAssertValidTypeCall(rvlib, validator, node.arguments[0]);
+      } else if (
+        ts.isCallExpression(node) &&
+        runtimeIsFunctionName &&
+        node.expression.getText() === runtimeIsFunctionName
+      ) {
+        if (!node.typeArguments || node.typeArguments.length !== 1) {
+          throw new Error("type argument required");
+        }
+        const validator = createValidatorExpression(
+          typeChecker,
+          rvlib,
+          new Set(),
+          typeChecker.getTypeAtLocation(node.typeArguments[0])
+        );
+        if (validator === null) {
+          return node.expression;
+        }
+        return createIsTypeCall(rvlib, validator, node.arguments[0]);
       } else if (
         ts.isImportDeclaration(node) &&
         ts.isStringLiteral(node.moduleSpecifier) &&
@@ -322,14 +375,19 @@ export function createVisitor(typeChecker: ts.TypeChecker) {
           node.importClause.namedBindings &&
           ts.isNamedImports(node.importClause.namedBindings)
         ) {
-          const runtimeTypecheckBinding = node.importClause.namedBindings.elements.find(
-            binding =>
-              binding.propertyName
-                ? binding.propertyName.getText() === "runtimeTypecheck"
-                : binding.name.getText() === "runtimeTypecheck"
+          const runtimeAssertTypeBinding = node.importClause.namedBindings.elements.find(
+            bindingMatcher("runtimeAssertType")
           );
-          if (runtimeTypecheckBinding) {
-            placeholderFunctionName = runtimeTypecheckBinding.name.getText();
+          const runtimeIsTypeBinding = node.importClause.namedBindings.elements.find(
+            bindingMatcher("runtimeIsType")
+          );
+          if (runtimeAssertTypeBinding) {
+            runtimeAssertFunctionName = runtimeAssertTypeBinding.name.getText();
+          }
+          if (runtimeIsTypeBinding) {
+            runtimeIsFunctionName = runtimeIsTypeBinding.name.getText();
+          }
+          if (runtimeAssertTypeBinding || runtimeIsTypeBinding) {
             const importClause = ts.createImportClause(
               undefined,
               ts.createNamespaceImport(rvlib)
@@ -351,6 +409,6 @@ export function createVisitor(typeChecker: ts.TypeChecker) {
   }
 
   return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
-    return (sf: ts.SourceFile) => ts.visitNode(sf, visitor(ctx, sf));
+    return (sf: ts.SourceFile) => ts.visitNode(sf, visitor(ctx));
   };
 }

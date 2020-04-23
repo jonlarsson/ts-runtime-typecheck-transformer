@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { runtimeTypecheck } from "@ts-rtc/validations";
-import { expectToThrowRuntimeTypecheckError } from "./expectToThrowRuntimeTypecheckError";
+import { runtimeAssertType } from "@ts-rtc/validations";
+import { expectToThrowRuntimeAssertTypeError } from "./expectToThrowRuntimeAssertTypeError";
 import { AString } from "./exportedTypes";
 
 describe("importedType", () => {
@@ -8,19 +8,15 @@ describe("importedType", () => {
     // @ts-ignore
     const obj: AString = { a: 1 };
 
-    const actual = () => runtimeTypecheck(obj);
+    const actual = () => runtimeAssertType(obj);
 
-    expectToThrowRuntimeTypecheckError(actual, "obj.a", "string", "number");
+    expectToThrowRuntimeAssertTypeError(actual, "obj.a", "string", "number");
   });
 
   it("should not fail on correct property type", () => {
-    interface Obj {
-      a: boolean;
-      b: number;
-    }
     const obj: AString = { a: "string" };
 
-    const actual = () => runtimeTypecheck(obj);
+    const actual = () => runtimeAssertType(obj);
 
     expect(actual).not.to.throw();
   });

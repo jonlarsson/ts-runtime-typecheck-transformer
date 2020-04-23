@@ -1,11 +1,11 @@
-export class TypeCheckFailedError extends Error {}
+export class RuntimeAssertTypeError extends Error {}
 
 enum ValidationType {
   Type,
   Value,
   Properties,
   Union,
-  Array
+  Array,
 }
 export interface ValidType {
   valid: true;
@@ -114,7 +114,7 @@ class IdValidatorIndex {
     return validator;
   };
 
-  providerFor: IndexedProviderGetter = id => {
+  providerFor: IndexedProviderGetter = (id) => {
     return () => {
       const validator = this.index.get(id);
       if (validator === undefined) {
@@ -176,7 +176,7 @@ function typeValidator(expectedType: string): Validator {
       validationType: ValidationType.Type,
       valid: false,
       actual: type,
-      expected: expectedType
+      expected: expectedType,
     };
   };
 }
@@ -201,14 +201,14 @@ export function value(expectedValue: unknown): Validator {
         validationType: ValidationType.Value,
         valid: false,
         expectedValue: `${expectedValue}(${typeof expectedValue})`,
-        actualValue: `${actualValue}(${typeof actualValue})`
+        actualValue: `${actualValue}(${typeof actualValue})`,
       };
     }
     return {
       validationType: ValidationType.Value,
       valid: false,
       expectedValue,
-      actualValue
+      actualValue,
     };
   };
 }
@@ -220,14 +220,14 @@ export const undefinedValue = value(undefined);
 export function propertyValidator([
   name,
   getValue,
-  validator
+  validator,
 ]: Property): PropertyValidator {
   return function valdateProperty(object: unknown): InvalidProperty | null {
     const result = get(validator)(getValue(object));
     if (isInvalidResult(result)) {
       return {
         name,
-        result: result
+        result: result,
       };
     }
     return null;
@@ -245,7 +245,7 @@ export function props(...properties: Property[]): Validator {
       return objectTypeResult;
     }
     const results = properties
-      .map(property => propertyValidator(property)(value))
+      .map((property) => propertyValidator(property)(value))
       .filter(isNotNull);
 
     if (results.length === 0) {
@@ -254,7 +254,7 @@ export function props(...properties: Property[]): Validator {
     return {
       validationType: ValidationType.Properties,
       valid: false,
-      properties: results
+      properties: results,
     };
   };
 }
@@ -273,7 +273,7 @@ export function or(...validators: ValidatorOrProvider[]): Validator {
     return {
       validationType: ValidationType.Union,
       valid: false,
-      unionParts: invalidResults
+      unionParts: invalidResults,
     };
   };
 }
@@ -282,12 +282,12 @@ export function array(itemValidator: ValidatorOrProvider): Validator {
   return function arrayValidator(value: unknown): ValidationResult {
     if (Array.isArray(value)) {
       const invalidItems = value
-        .map(item => get(itemValidator)(item))
+        .map((item) => get(itemValidator)(item))
         .map((itemResult, index): InvalidArrayItem | null => {
           if (isInvalidResult(itemResult)) {
             return {
               index,
-              result: itemResult
+              result: itemResult,
             };
           }
           return null;
@@ -299,14 +299,14 @@ export function array(itemValidator: ValidatorOrProvider): Validator {
       return {
         validationType: ValidationType.Array,
         valid: false,
-        items: invalidItems
+        items: invalidItems,
       };
     }
     return {
       validationType: ValidationType.Type,
       valid: false,
       expected: "Array",
-      actual: value === null ? "null" : typeof value
+      actual: value === null ? "null" : typeof value,
     };
   };
 }
@@ -336,29 +336,29 @@ function describeInvalidResult(
     return [
       `${joinPath(path)}: expected type ${result.expected} but was ${
         result.actual
-      }`
+      }`,
     ];
   }
   if (isInvalidValue(result)) {
     return [
       `${joinPath(path)}: expected value ${
         result.expectedValue
-      } but was ${describeValue(result.actualValue)}`
+      } but was ${describeValue(result.actualValue)}`,
     ];
   }
   if (isInvalidProperties(result)) {
     return result.properties
-      .map(prop => describeInvalidResult(prop.result, path.concat(prop.name)))
+      .map((prop) => describeInvalidResult(prop.result, path.concat(prop.name)))
       .flat();
   }
   if (isInvalidUnion(result)) {
     return result.unionParts
-      .map(part => describeInvalidResult(part, path))
+      .map((part) => describeInvalidResult(part, path))
       .flat();
   }
   if (isInvalidArray(result)) {
     return result.items
-      .map(item =>
+      .map((item) =>
         describeInvalidResult(
           item.result,
           path
@@ -386,6 +386,12 @@ export function assertValidType(
   const validator = createValidator(factory);
   const result = validator(value);
   if (isInvalidResult(result)) {
-    throw new TypeCheckFailedError(resultAsString(result, name));
+    throw new RuntimeAssertTypeError(resultAsString(result, name));
   }
+}
+
+export function isType(value: unknown, factory: ValidatorFactory) {
+  const validator = createValidator(factory);
+  const result = validator(value);
+  return isValidResult(result);
 }

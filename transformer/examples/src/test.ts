@@ -1,4 +1,4 @@
-import { runtimeTypecheck } from "@ts-rtc/validations";
+import { runtimeIsType } from "@ts-rtc/validations";
 
 export interface Ab {
   a: string;
@@ -37,14 +37,17 @@ function unsafeCall(): any {
   return {};
 }
 
-const a: number | null = unsafeCall();
-const actual = () => runtimeTypecheck(a);
+const a = unsafeCall();
+if (runtimeIsType<string>(a)) {
+  a.big();
+}
+
 // const ape: NumStr = unsafeCall();
 //
-// runtimeTypecheck(ape);
+// runtimeAssertType(ape);
 //
 // export function annotated(num: number, str: string, numstr: NumStr): void {
-//   runtimeTypecheck(num, str, numstr);
+//   runtimeAssertType(num, str, numstr);
 //   console.log("a called", typeof num);
 // }
 //
@@ -53,16 +56,16 @@ const actual = () => runtimeTypecheck(a);
 // }
 
 // const a: {cow: NumStr} = unsafeCall();
-// runtimeTypecheck(a);
+// runtimeAssertType(a);
 
 // const array: [] = unsafeCall();
-// runtimeTypecheck(array);
+// runtimeAssertType(array);
 //
 // const array2: number[] = unsafeCall();
-// runtimeTypecheck(array2);
+// runtimeAssertType(array2);
 //
 // const array3: NumStr[] = unsafeCall();
-// runtimeTypecheck(array3);
+// runtimeAssertType(array3);
 
 // enum Num {
 //   One = 1,
@@ -71,13 +74,13 @@ const actual = () => runtimeTypecheck(a);
 //
 // const num: Num = unsafeCall();
 //
-// runtimeTypecheck(num);
+// runtimeAssertType(num);
 
 // const yes: true = unsafeCall();
 // const no: false = unsafeCall();
 //
-// runtimeTypecheck(yes);
-// runtimeTypecheck(no);
+// runtimeAssertType(yes);
+// runtimeAssertType(no);
 
 // interface A<T, X> {
 //   a: T;
@@ -87,7 +90,7 @@ const actual = () => runtimeTypecheck(a);
 //
 // const aBool: A<boolean, Num> = unsafeCall();
 //
-// runtimeTypecheck(aBool);
+// runtimeAssertType(aBool);
 
 // const array: number[] = unsafeCall();
-// runtimeTypecheck(array);
+// runtimeAssertType(array);
