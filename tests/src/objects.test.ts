@@ -47,4 +47,21 @@ describe("interfaces", () => {
       "string"
     );
   });
+
+  it("should fail on a property needing property access", () => {
+    interface Obj {
+      "_@test": boolean;
+    }
+    // @ts-ignore
+    const obj: Obj = { "_@test": 1 };
+
+    const actual = () => runtimeAssertType(obj);
+
+    expectToThrowRuntimeAssertTypeError(
+      actual,
+      'obj["_@test"]',
+      "boolean",
+      "number"
+    );
+  });
 });

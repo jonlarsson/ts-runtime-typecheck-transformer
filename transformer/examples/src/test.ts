@@ -1,4 +1,4 @@
-import { runtimeIsType } from "@ts-rtc/validations";
+import { runtimeAssertType } from "@ts-rtc/validations";
 
 export interface Ab {
   a: string;
@@ -26,6 +26,7 @@ interface Pong {
 interface Ping {
   i: number;
   pong: Pong;
+  "a prop": string;
 }
 
 interface Circular {
@@ -38,9 +39,7 @@ function unsafeCall(): any {
 }
 
 const a = unsafeCall();
-if (runtimeIsType<string>(a)) {
-  a.big();
-}
+runtimeAssertType<Ping>(a);
 
 // const ape: NumStr = unsafeCall();
 //

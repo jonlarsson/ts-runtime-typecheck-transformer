@@ -328,6 +328,13 @@ function joinPath(path: string[]): string {
   return path.join(".").replace(/\.\[/g, "[");
 }
 
+function getPropertyAccess(propName: string) {
+  if (/^[a-zA-Z_$][a-zA-Z_$]*$/.test(propName)) {
+    return propName;
+  }
+  return `["${propName}"]`;
+}
+
 function describeInvalidResult(
   result: InvalidResult,
   path: string[]
@@ -348,7 +355,12 @@ function describeInvalidResult(
   }
   if (isInvalidProperties(result)) {
     return result.properties
-      .map((prop) => describeInvalidResult(prop.result, path.concat(prop.name)))
+      .map((prop) =>
+        describeInvalidResult(
+          prop.result,
+          path.concat(getPropertyAccess(prop.name))
+        )
+      )
       .flat();
   }
   if (isInvalidUnion(result)) {

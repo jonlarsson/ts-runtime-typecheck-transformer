@@ -120,13 +120,22 @@ function createIndexCall(id: number, validator: ts.Expression): ts.Expression {
 }
 
 function createValueGetter(propName: string): ts.Expression {
+  let propAccess;
+  if (/^[a-zA-Z_$][a-zA-Z_$]*$/.test(propName)) {
+    propAccess = ts.createPropertyAccess(ts.createIdentifier("v"), propName);
+  } else {
+    propAccess = ts.createElementAccess(
+      ts.createIdentifier("v"),
+      ts.createStringLiteral(propName)
+    );
+  }
   return ts.createArrowFunction(
     [],
     [],
     [ts.createParameter(undefined, undefined, undefined, "v")],
     undefined,
     undefined,
-    ts.createPropertyAccess(ts.createIdentifier("v"), propName)
+    propAccess
   );
 }
 
