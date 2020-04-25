@@ -1,12 +1,15 @@
 {
   "name": "@ts-rtc/validations",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "dest/index.js",
-  "files": ["dest", "package.json", "LICENSE"],
+  "files": [
+    "dest",
+    "package.json",
+    "LICENSE"
+  ],
   "private": false,
   "license": "MIT",
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/chai": "^4.2.3",
     "@types/mocha": "^5.2.7",

@@ -1,8 +1,12 @@
 {
   "name": "@ts-rtc/transformer",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "dest/index.js",
-  "files": ["dest", "package.json", "LICENSE"],
+  "files": [
+    "dest",
+    "package.json",
+    "LICENSE"
+  ],
   "private": false,
   "bin": {
     "ts-runtime-typecheck-compile": "dest/cli.js"
@@ -11,7 +15,7 @@
   "dependencies": {
     "ts-node": "^8.4.1",
     "typescript": "^3.8.3",
-    "@ts-rtc/validations": "^0.0.1"
+    "@ts-rtc/validations": "^0.0.2"
   },
   "devDependencies": {
     "@types/node": "^12.0.8"
